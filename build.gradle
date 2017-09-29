@@ -19,17 +19,28 @@ ext.mainClass = 'org.scm4j.installer.Installer'
 
 repositories {
 	jcenter()
+	maven { url 'https://jitpack.io' }
+}
+
+configurations {
+	shadowRuntime
 }
 
 dependencies {
 	// load managed dependencies
-	def s = '[ \t]*', w = '[^:#@]+?'
+	def s = '[ \t]*', w = '[^:#@\\s]+?'
 	(file('mdeps').text =~ /(?m)^$s($w):($w):($w)?(:$w)?(@$w)?$s(?:#$s($w)?$s)?$/).each {
 			match, group, name, version, classifier, ext, configuration ->
 		add(configuration ?: 'compile', "$group:$name:${version?:'latest.integration'}${classifier?:''}${ext?:''}")
 	}
 
-	compile 'org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.3'
+	if (currentOS.windows)
+		compileOnly "org.eclipse.swt:org.eclipse.swt.win32.win32.x86${is64bit()?'_64':''}:4.3"
+	else if (currentOS.linux)
+		compileOnly "org.eclipse.swt:org.eclipse.swt.gtk.linux.x86${is64bit()?'_64':''}:4.3"
+	else if (currentOS.macOsX)
+		compileOnly "org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86${is64bit()?'_64':''}:4.3"
+	shadowRuntime 'org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.3'
 	testCompile 'junit:junit:4.12'
 }
 
@@ -77,6 +88,18 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
 	archives sourcesJar
 	archives javadocJar
+}
+
+static def getCurrentOS() {
+	return org.gradle.internal.os.OperatingSystem.current()
+}
+
+static def is64bit() {
+	return System.getProperty('os.arch').contains('64')
+}
+
+shadowJar {
+	configurations += [project.configurations.shadowRuntime]
 }
 
 launch4j {

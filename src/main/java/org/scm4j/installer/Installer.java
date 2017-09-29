@@ -1,5 +1,7 @@
 package org.scm4j.installer;
 
+import java.beans.Beans;
+
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
@@ -26,6 +28,9 @@ public class Installer {
 	public void open() {
 		Display display = Display.getDefault();
 		createContents();
+		if (!Beans.isDesignTime()) {
+			init();
+		}
 		shell.open();
 		shell.layout();
 		while (!shell.isDisposed()) {
@@ -33,6 +38,10 @@ public class Installer {
 				display.sleep();
 			}
 		}
+	}
+
+	private void init() {
+		// TODO ...
 	}
 
 	/**
