@@ -33,6 +33,9 @@ public class Installer {
 	protected Shell shlInstaller;
 	private Table tableProducts;
 	private Table tableVersions;
+	private Button btnRefresh;
+	private Button btnDownload;
+	private Button btnInstall;
 
 	/**
 	 * Launch the application.
@@ -85,6 +88,7 @@ public class Installer {
 		} catch (Exception e) {
 			showError("Error getting product list", e);
 		}
+		refreshVersions(false);
 	}
 
 	private void fillProducts(List<String> products) {
@@ -120,17 +124,16 @@ public class Installer {
 		try {
 			List<String> products = getDeployerEngine().refreshProducts();
 			fillProducts(products);
-
 			refreshVersions(true);
 		} catch (Exception e) {
 			showError("Error refreshing product list", e);
 		}
 	}
 
-	
 	private void refreshVersions(boolean refresh) {
 		try {
 			if (tableProducts.getSelectionIndex() != -1) {
+				// TODO: ...
 				//TableItem item = tableProducts.getItem(tableProducts.getSelectionIndex());
 				//String product = item.getText();
 				//Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
@@ -144,6 +147,39 @@ public class Installer {
 			}
 		} catch (Exception e) {
 			showError("Error getting product versions", e);
+		}
+		refreshButtons();
+	}
+
+	private void refreshButtons() {
+		boolean disabled = tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1;
+		btnDownload.setEnabled(!disabled);
+		btnInstall.setEnabled(!disabled);
+	}
+
+	private void download() {
+		try {
+			if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
+				return;
+			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+			getDeployerEngine().download(product + ":" + version);
+			getProducts();
+		} catch (Exception e) {
+			showError("Error downloading product", e);
+		}
+	}
+
+	private void deploy() {
+		try {
+			if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
+				return;
+			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+			getDeployerEngine().deploy(product + ":" + version);
+			getProducts();
+		} catch (Exception e) {
+			showError("Error deploying product", e);
 		}
 	}
 
@@ -214,7 +250,7 @@ public class Installer {
 		fd_compositeButtons.right = new FormAttachment(100, -10);
 		compositeButtons.setLayoutData(fd_compositeButtons);
 		
-		Button btnRefresh = new Button(compositeButtons, SWT.NONE);
+		btnRefresh = new Button(compositeButtons, SWT.NONE);
 		btnRefresh.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -228,7 +264,13 @@ public class Installer {
 		btnRefresh.setLayoutData(fd_btnRefresh);
 		btnRefresh.setText("Refresh");
 		
-		Button btnDownload = new Button(compositeButtons, SWT.NONE);
+		btnDownload = new Button(compositeButtons, SWT.NONE);
+		btnDownload.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				download();
+			}
+		});
 		FormData fd_btnDownload = new FormData();
 		fd_btnDownload.right = new FormAttachment(0, 100);
 		fd_btnDownload.top = new FormAttachment(0, 31);
@@ -236,7 +278,13 @@ public class Installer {
 		btnDownload.setLayoutData(fd_btnDownload);
 		btnDownload.setText("Download");
 		
-		Button btnInstall = new Button(compositeButtons, SWT.NONE);
+		btnInstall = new Button(compositeButtons, SWT.NONE);
+		btnInstall.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				deploy();
+			}
+		});
 		FormData fd_btnInstall = new FormData();
 		fd_btnInstall.right = new FormAttachment(0, 100);
 		fd_btnInstall.top = new FormAttachment(0, 62);
