@@ -68,7 +68,7 @@ jacocoTestReport {
 jar {
 	manifest.attributes (
 		'Specification-Title': project.name,
-		'Specification-Version': version,
+		'Specification-Version': version.replaceAll(/-SNAPSHOT$/, ''),
 		'Implementation-Title': project.name,
 		'Implementation-Version': "$version (${new Date().format('yyyy-MM-dd')})",
 		'Main-Class': mainClass,
@@ -104,7 +104,7 @@ shadowJar {
 
 launch4j {
 	mainClassName = mainClass
-	bundledJrePath = 'jre'
+	bundledJrePath = '../jre'
 	jreRuntimeBits = '32'
 	copyConfigurable = project.tasks.shadowJar.outputs.files
 	jar = "lib/${project.tasks.shadowJar.archiveName}"
