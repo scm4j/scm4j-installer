@@ -133,14 +133,10 @@ public class Installer {
 	private void refreshVersions(boolean refresh) {
 		try {
 			if (tableProducts.getSelectionIndex() != -1) {
-				// TODO: ...
-				//TableItem item = tableProducts.getItem(tableProducts.getSelectionIndex());
-				//String product = item.getText();
-				//Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
-				//		: getDeployerEngine().listProductVersions(product);
-				Map<String, Boolean> versions = new HashMap<String, Boolean>();
-				versions.put("1.1", false);
-				versions.put("2.2", true);
+				TableItem item = tableProducts.getItem(tableProducts.getSelectionIndex());
+				String product = item.getText();
+				Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
+						: getDeployerEngine().listProductVersions(product);
 				fillVersions(versions, refresh);
 			} else {
 				tableVersions.clearAll();
