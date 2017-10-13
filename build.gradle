@@ -88,7 +88,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
 	archives sourcesJar
 	archives javadocJar
-	archives file: file("$buildDir/launch4j/${project.name}.exe"), builtBy: tasks.launch4j
+	archives file: file("$buildDir/launch4j/${project.name}.exe"), builtBy: createExe
 }
 
 static def getCurrentOS() {
