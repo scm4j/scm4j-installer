@@ -4,7 +4,6 @@ import java.beans.Beans;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -159,7 +158,7 @@ public class Installer {
 				return;
 			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
-			getDeployerEngine().download(product + ":" + version);
+			getDeployerEngine().download(product, version);
 			getProducts();
 		} catch (Exception e) {
 			showError("Error downloading product", e);
@@ -172,7 +171,7 @@ public class Installer {
 				return;
 			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
-			getDeployerEngine().deploy(product + ":" + version);
+			getDeployerEngine().deploy(product, version);
 			getProducts();
 		} catch (Exception e) {
 			showError("Error deploying product", e);
