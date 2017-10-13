@@ -34,13 +34,12 @@ dependencies {
 		add(configuration ?: 'compile', "$group:$name:${version?:'latest.integration'}${classifier?:''}${ext?:''}")
 	}
 
-	if (currentOS.windows)
-		compileOnly "org.eclipse.swt:org.eclipse.swt.win32.win32.x86${is64bit()?'_64':''}:4.3"
-	else if (currentOS.linux)
-		compileOnly "org.eclipse.swt:org.eclipse.swt.gtk.linux.x86${is64bit()?'_64':''}:4.3"
-	else if (currentOS.macOsX)
-		compileOnly "org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86${is64bit()?'_64':''}:4.3"
+	def swtPostfix = (currentOS.windows ? 'win32.win32' : (currentOS.linux ? 'gtk.linux'
+			: (currentOS.macOsX ? 'cocoa.macosx' : 'unknown'))) + '.x86' + (is64bit() ? '_64' : '')
+	compileOnly "org.eclipse.swt:org.eclipse.swt.$swtPostfix:4.3"
+	runtimeOnly "org.eclipse.swt:org.eclipse.swt.$swtPostfix:4.3"
 	shadowRuntime 'org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.3'
+
 	testCompile 'junit:junit:4.12'
 }
 
@@ -100,7 +99,7 @@ static def is64bit() {
 }
 
 shadowJar {
-	configurations += [project.configurations.shadowRuntime]
+	configurations = [project.configurations.compile, project.configurations.shadowRuntime]
 }
 
 launch4j {
