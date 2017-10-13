@@ -11,7 +11,7 @@ public class Settings {
 	private final static String PROPERTIES_FILE_NAME = "installer.properties";
 	private final static String PROPERTY_SITE_DATA_DIR = "siteDataDir";
 	private final static String PROPERTY_PRODUCT_LIST_URL = "productListUrl";
-	private final static String DEFAULT_PRODUCT_LIST_URL = "http://scm4j.org/artifactory/repo";
+	private final static String DEFAULT_PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
 
 	private File runningPath;
 	private Properties properties;
