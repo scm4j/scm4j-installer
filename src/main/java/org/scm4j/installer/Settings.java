@@ -8,10 +8,18 @@ import java.util.Properties;
 
 public class Settings {
 
-	private final static String PROPERTIES_FILE_NAME = "installer.properties";
+	private static String defaultProductListUrl = "https://dev.untill.com/artifactory/repo";
+	private static String propertiesFileName = "installer.properties";
 	private final static String PROPERTY_SITE_DATA_DIR = "siteDataDir";
 	private final static String PROPERTY_PRODUCT_LIST_URL = "productListUrl";
-	private final static String DEFAULT_PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
+
+	public static void setDefaultProductListUrl(String defaultProductListUrl) {
+		Settings.defaultProductListUrl = defaultProductListUrl;
+	}
+
+	public static void setPropertiesFileName(String propertiesFileName) {
+		Settings.propertiesFileName = propertiesFileName;
+	}
 
 	private File runningPath;
 	private Properties properties;
@@ -22,7 +30,7 @@ public class Settings {
 		runningPath = getRunningPath();
 
 		properties = new Properties();
-		File propertiesFile = new File(runningPath, PROPERTIES_FILE_NAME);
+		File propertiesFile = new File(runningPath, propertiesFileName);
 		if (propertiesFile.exists()) {
 			try (InputStream inputStream = new FileInputStream(propertiesFile)) {
 				properties.load(inputStream);
@@ -33,8 +41,8 @@ public class Settings {
 		}
 		siteDataDir = properties.getProperty(PROPERTY_SITE_DATA_DIR);
 		if (siteDataDir == null)
-			siteDataDir = new File(runningPath, "data").getPath();
-		productListUrl = properties.getProperty(PROPERTY_PRODUCT_LIST_URL, DEFAULT_PRODUCT_LIST_URL);
+			siteDataDir = runningPath.getPath();
+		productListUrl = properties.getProperty(PROPERTY_PRODUCT_LIST_URL, defaultProductListUrl);
 	}
 
 	public String getSiteDataDir() {
