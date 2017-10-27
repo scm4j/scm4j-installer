@@ -154,29 +154,39 @@ public class Installer {
 	}
 
 	private void download() {
-		try {
-			if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
-				return;
-			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
-			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+		if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
+			return;
+		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+
+		Progress progress = new Progress(shlInstaller, "Downloading", () -> {
 			getDeployerEngine().download(product, version);
-			getProducts();
-		} catch (Exception e) {
-			showError("Error downloading product", e);
+		});
+		Object result = progress.open();
+		if (result != null) {
+			if (result instanceof Throwable)
+				showError("Error downloading product", (Throwable) result);
+			// TODO else ?
 		}
+		getProducts();
 	}
 
 	private void deploy() {
-		try {
-			if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
-				return;
-			String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
-			String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+		if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
+			return;
+		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+
+		Progress progress = new Progress(shlInstaller, "Deploying", () -> {
 			getDeployerEngine().deploy(product, version);
-			getProducts();
-		} catch (Exception e) {
-			showError("Error deploying product", e);
+		});
+		Object result = progress.open();
+		if (result != null) {
+			if (result instanceof Throwable)
+				showError("Error deploying product", (Throwable) result);
+			// TODO else ?
 		}
+		getProducts();
 	}
 
 	private void showError(String message, final Throwable exception) {
