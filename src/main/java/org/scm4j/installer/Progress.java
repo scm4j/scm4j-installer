@@ -30,8 +30,6 @@ public class Progress extends Dialog {
 
 	/**
 	 * Create the dialog.
-	 * @param parent
-	 * @param style
 	 */
 	public Progress(Shell parent, String text, Runnable runnable) {
 		super(parent);
