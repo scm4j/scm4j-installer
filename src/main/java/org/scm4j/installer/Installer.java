@@ -79,7 +79,7 @@ public class Installer {
 		// TODO use flash/workingFolder
 		if (deployerEngine == null)
 			deployerEngine = new DeployerEngine(new File(settings.getSiteDataDir()), new File(settings.getSiteDataDir()),
-					settings.getProductListUrl(), "999999999.999999999");
+					settings.getProductListUrl());
 		return deployerEngine;
 	}
 
