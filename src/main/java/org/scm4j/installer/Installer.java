@@ -7,6 +7,8 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.transform.OutputKeys;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -22,6 +24,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
+import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
 public class Installer {
@@ -179,7 +182,9 @@ public class Installer {
 		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 
 		Progress progress = new Progress(shlInstaller, "Deploying", () -> {
-			getDeployerEngine().deploy(product, version);
+			DeploymentResult result = getDeployerEngine().deploy(product, version);
+			if (result != DeploymentResult.OK)
+				System.err.println(result);
 		});
 		Object result = progress.open();
 		if (result != null) {
