@@ -74,8 +74,6 @@ public class Installer {
 		settings = new Settings();
 
 		getProducts();
-
-		// TODO ...
 	}
 
 	private DeployerEngine getDeployerEngine() {
