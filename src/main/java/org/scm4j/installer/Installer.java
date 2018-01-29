@@ -7,8 +7,6 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.transform.OutputKeys;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -44,12 +42,15 @@ public class Installer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		try {
-			Installer window = new Installer();
-			window.open();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		if (args.length > 0)
+			CLI.main(args);
+		else
+			try {
+				Installer window = new Installer();
+				window.open();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 	}
 
 	/**
