@@ -11,6 +11,7 @@ public class Settings {
 	private static String runningPath = System.getProperty("user.dir");
 	private static String defaultProductListUrl = "https://dev.untill.com/artifactory/repo";
 	private static String propertiesFileName = "installer.properties";
+	private static String productName = "scm4j-installer";
 	private final static String PROPERTY_SITE_DATA_DIR = "siteDataDir";
 	private final static String PROPERTY_PRODUCT_LIST_URL = "productListUrl";
 
@@ -26,6 +27,13 @@ public class Settings {
 		Settings.propertiesFileName = propertiesFileName;
 	}
 
+	public static void setProductName(String productName) {
+		Settings.productName = productName;
+	}
+
+	public static String getProductName() {
+		return productName;
+	}
 	private Properties properties;
 	private String siteDataDir;
 	private String productListUrl;
@@ -54,5 +62,4 @@ public class Settings {
 	public String getProductListUrl() {
 		return productListUrl;
 	}
-
 }

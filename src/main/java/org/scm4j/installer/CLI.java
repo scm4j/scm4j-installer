@@ -18,7 +18,6 @@ public class CLI {
 
 	public static void main(String[] args) {
 
-		Settings settings = new Settings();
 		String command = null;
 		String product = null;
 		String version = null;
@@ -47,12 +46,14 @@ public class CLI {
 		}
 		if (errorMessage != null) {
 			System.out.println(errorMessage);
-			formatter.printHelp("utility-name", options);
+			formatter.printHelp(Settings.getProductName() + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
+					+ " <product> <version>", options);
 			System.exit(1);
 			return;
 		}
 
 		try {
+			Settings settings = new Settings();
 			DeployerEngine deployerEngine = new DeployerEngine(new File(settings.getSiteDataDir()),
 					new File(settings.getSiteDataDir()), settings.getProductListUrl());
 			
