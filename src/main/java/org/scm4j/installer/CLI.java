@@ -72,7 +72,7 @@ public class CLI {
 			if (cmdLine.hasOption("stacktrace"))
 				e.printStackTrace();
 			else
-				System.out.println(errorMessage);
+				System.out.println(e.getMessage());
 			System.exit(2);
 			return;
 		}
