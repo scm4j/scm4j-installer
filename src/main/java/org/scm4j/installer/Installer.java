@@ -36,6 +36,7 @@ public class Installer {
 	private Button btnRefresh;
 	private Button btnDownload;
 	private Button btnInstall;
+	private Button btnUninstall;
 
 	/**
 	 * Launch the application.
@@ -155,6 +156,7 @@ public class Installer {
 		boolean disabled = tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1;
 		btnDownload.setEnabled(!disabled);
 		btnInstall.setEnabled(!disabled);
+		btnUninstall.setEnabled(tableProducts.getSelectionIndex() != -1);
 	}
 
 	private void download() {
@@ -190,6 +192,25 @@ public class Installer {
 		if (result != null) {
 			if (result instanceof Throwable)
 				showError("Error deploying product", (Throwable) result);
+			// TODO else ?
+		}
+		getProducts();
+	}
+
+	private void undeploy() {
+		if (tableProducts.getSelectionIndex() == -1)
+			return;
+		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+
+		Progress progress = new Progress(shlInstaller, "Undeploying", () -> {
+			DeploymentResult result = getDeployerEngine().deploy(product, "");
+			if (result != DeploymentResult.OK)
+				System.err.println(result);
+		});
+		Object result = progress.open();
+		if (result != null) {
+			if (result instanceof Throwable)
+				showError("Error undeploying product", (Throwable) result);
 			// TODO else ?
 		}
 		getProducts();
@@ -270,9 +291,9 @@ public class Installer {
 			}
 		});
 		FormData fd_btnRefresh = new FormData();
-		fd_btnRefresh.right = new FormAttachment(0, 100);
 		fd_btnRefresh.top = new FormAttachment(0);
 		fd_btnRefresh.left = new FormAttachment(0);
+		fd_btnRefresh.right = new FormAttachment(0, 100);
 		btnRefresh.setLayoutData(fd_btnRefresh);
 		btnRefresh.setText("Refresh");
 		
@@ -284,9 +305,9 @@ public class Installer {
 			}
 		});
 		FormData fd_btnDownload = new FormData();
-		fd_btnDownload.right = new FormAttachment(0, 100);
-		fd_btnDownload.top = new FormAttachment(0, 31);
+		fd_btnDownload.top = new FormAttachment(btnRefresh, 6);
 		fd_btnDownload.left = new FormAttachment(0);
+		fd_btnDownload.right = new FormAttachment(0, 100);
 		btnDownload.setLayoutData(fd_btnDownload);
 		btnDownload.setText("Download");
 		
@@ -298,11 +319,25 @@ public class Installer {
 			}
 		});
 		FormData fd_btnInstall = new FormData();
-		fd_btnInstall.right = new FormAttachment(0, 100);
-		fd_btnInstall.top = new FormAttachment(0, 62);
+		fd_btnInstall.top = new FormAttachment(btnDownload, 6);
 		fd_btnInstall.left = new FormAttachment(0);
+		fd_btnInstall.right = new FormAttachment(0, 100);
 		btnInstall.setLayoutData(fd_btnInstall);
 		btnInstall.setText("Install");
+		
+		btnUninstall = new Button(compositeButtons, SWT.NONE);
+		btnUninstall.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				undeploy();
+			}
+		});
+		btnUninstall.setText("Uninstall");
+		FormData fd_btnUninstall = new FormData();
+		fd_btnUninstall.top = new FormAttachment(btnInstall, 6);
+		fd_btnUninstall.left = new FormAttachment(0);
+		fd_btnUninstall.right = new FormAttachment(0, 100);
+		btnUninstall.setLayoutData(fd_btnUninstall);
 
 	}
 }

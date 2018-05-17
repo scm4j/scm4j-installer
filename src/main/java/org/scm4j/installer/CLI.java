@@ -37,8 +37,8 @@ public class CLI {
 				errorMessage = "Missing required command";
 			} else if (argsWoOptions[0].equalsIgnoreCase(COMMAND_DOWNLOAD) || argsWoOptions[0].equalsIgnoreCase(COMMAND_DEPLOY)) {
 				command = argsWoOptions[0].toLowerCase();
-				product = argsWoOptions.length > 1 ? argsWoOptions[1] : null;
-				version = argsWoOptions.length > 2 ? argsWoOptions[2] : null;
+				product = argsWoOptions.length > 1 ? argsWoOptions[1] : "";
+				version = argsWoOptions.length > 2 ? argsWoOptions[2] : "";
 			} else {
 				errorMessage = "Unknown command: " + argsWoOptions[0];
 			}
