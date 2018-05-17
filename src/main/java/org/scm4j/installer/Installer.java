@@ -42,15 +42,16 @@ public class Installer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		if (args.length > 0)
+		if (args.length > 0) {
 			CLI.main(args);
-		else
-			try {
-				Installer window = new Installer();
-				window.open();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			return;
+		}
+		try {
+			Installer window = new Installer();
+			window.open();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**

@@ -23,6 +23,7 @@ public class CLI {
 		String version = null;
 
 		Options options = new Options()
+				.addOption("r", "result-folder", true, "Store stdout, stderr and exitcode to specified folder")
 				.addOption("s", "stacktrace", false, "Print out the stacktrace");
 
 		CommandLineParser parser = new DefaultParser();
@@ -69,7 +70,7 @@ public class CLI {
 			}
 
 		} catch (Exception e) {
-			if (cmdLine.hasOption("stacktrace"))
+			if (cmdLine.hasOption("s"))
 				e.printStackTrace();
 			else
 				System.err.println(e);
