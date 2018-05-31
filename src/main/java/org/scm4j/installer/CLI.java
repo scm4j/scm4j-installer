@@ -1,15 +1,18 @@
 package org.scm4j.installer;
 
-import java.io.File;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 
 public class CLI {
 
@@ -30,6 +33,7 @@ public class CLI {
 		HelpFormatter formatter = new HelpFormatter();
 		CommandLine cmdLine = null;
 		String errorMessage = null;
+		File exitcodeFile = null;
 		try {
 			cmdLine = parser.parse(options, args);
 			String[] argsWoOptions = cmdLine.getArgs();
@@ -45,38 +49,66 @@ public class CLI {
 		} catch (ParseException e) {
 			errorMessage = e.getMessage();
 		}
+		String outputFolderName = cmdLine.getOptionValue("r");
+		if (outputFolderName != null) {
+			try {
+				File outputFolder = new File(outputFolderName);
+				if (!outputFolder.exists())
+					outputFolder.mkdirs();
+				File errOut = new File(outputFolder, "stderr.txt");
+				errOut.createNewFile();
+				File stdOut = new File(outputFolder, "stdout.txt");
+				stdOut.createNewFile();
+				exitcodeFile = new File(outputFolder, "exitcode.txt");
+				PrintStream errStream = new PrintStream(errOut);
+				PrintStream outStream = new PrintStream(stdOut);
+				System.setErr(errStream);
+				System.setOut(outStream);
+			} catch (Exception e) {
+				errorMessage = "Can't create folder for logs in " + outputFolderName;
+			}
+		} else {
+			errorMessage = "You need to specify directory for flag result-folder!";
+		}
 		if (errorMessage != null) {
-			System.out.println(errorMessage);
+			System.err.println(errorMessage);
 			formatter.printHelp(Settings.getProductName() + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
 					+ " <product> <version>", options);
-			System.exit(1);
-			return;
+			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
 
 		try {
 			Settings settings = new Settings();
 			DeployerEngine deployerEngine = new DeployerEngine(new File(settings.getSiteDataDir()),
 					new File(settings.getSiteDataDir()), settings.getProductListUrl());
-			
 			if (command.equalsIgnoreCase(COMMAND_DOWNLOAD)) {
 				deployerEngine.download(product, version);
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
 				DeploymentResult result = deployerEngine.deploy(product, version);
 				if (result != DeploymentResult.OK) {
-					System.exit(3);
-					return;
+					writeExitCodeToFileOrJustExit(2, exitcodeFile);
+				} else {
+					writeExitCodeToFileOrJustExit(0, exitcodeFile);
 				}
 			}
-
 		} catch (Exception e) {
-			if (cmdLine.hasOption("s"))
+			if (cmdLine.hasOption("s")) {
 				e.printStackTrace();
-			else
-				System.err.println(e);
-			System.exit(2);
-			return;
+			} else {
+				System.err.println(e.getMessage());
+			}
+			writeExitCodeToFileOrJustExit(2, exitcodeFile);
 		}
 	}
 
+	private static void writeExitCodeToFileOrJustExit(int exitcode, File exitcodeFile) {
+		try {
+			if (exitcodeFile != null)
+				FileUtils.writeStringToFile(exitcodeFile, Integer.toString(exitcode), "UTF-8");
+			System.exit(exitcode);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

@@ -1,12 +1,5 @@
 package org.scm4j.installer;
 
-import java.beans.Beans;
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -25,6 +18,13 @@ import org.eclipse.swt.widgets.TableItem;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
+import java.beans.Beans;
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.Map;
+
 public class Installer {
 
 	private Settings settings;
@@ -40,6 +40,7 @@ public class Installer {
 
 	/**
 	 * Launch the application.
+	 *
 	 * @param args
 	 */
 	public static void main(String[] args) {
@@ -101,7 +102,7 @@ public class Installer {
 		if (tableProducts.getSelectionIndex() != -1)
 			selectedProduct = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 		tableProducts.removeAll();
-		for (String productName: products) {
+		for (String productName : products) {
 			TableItem item = new TableItem(tableProducts, SWT.NONE);
 			item.setText(productName);
 			if (selectedProduct != null && selectedProduct.equals(productName))
@@ -114,7 +115,7 @@ public class Installer {
 		if (refresh && tableVersions.getSelectionIndex() != -1)
 			selectedVersion = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 		tableVersions.removeAll();
-		for (String version: versions.keySet()) {
+		for (String version : versions.keySet()) {
 			TableItem item = new TableItem(tableVersions, SWT.NONE);
 			item.setText(version);
 			item.setText(1, versions.get(version) ? "yes" : "no");
@@ -165,9 +166,8 @@ public class Installer {
 		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 
-		Progress progress = new Progress(shlInstaller, "Downloading", () -> {
-			getDeployerEngine().download(product, version);
-		});
+		Progress progress = new Progress(shlInstaller, "Downloading", () -> getDeployerEngine().download(product,
+				version));
 		Object result = progress.open();
 		if (result != null) {
 			if (result instanceof Throwable)
@@ -185,8 +185,21 @@ public class Installer {
 
 		Progress progress = new Progress(shlInstaller, "Deploying", () -> {
 			DeploymentResult result = getDeployerEngine().deploy(product, version);
-			if (result != DeploymentResult.OK)
-				System.err.println(result);
+			String productAndVersion = product + "-" + version;
+			//TODO rewrite this!
+			switch (result) {
+			case OK:
+				break;
+			case NEED_REBOOT:
+				System.err.println(productAndVersion + " need reboot");
+				//TODO why we need reboot? don't stop or smth else?
+				break;
+			case FAILED:
+				System.err.println(productAndVersion + " deploying failed!");
+				break;
+			default:
+				throw new RuntimeException("Invalid result!");
+			}
 		});
 		Object result = progress.open();
 		if (result != null) {
@@ -238,14 +251,14 @@ public class Installer {
 		shlInstaller.setSize(450, 300);
 		shlInstaller.setText("Installer");
 		shlInstaller.setLayout(new FormLayout());
-		
+
 		SashForm sashForm = new SashForm(shlInstaller, SWT.VERTICAL);
 		FormData fd_sashForm = new FormData();
 		fd_sashForm.bottom = new FormAttachment(100, -10);
 		fd_sashForm.top = new FormAttachment(0, 10);
 		fd_sashForm.left = new FormAttachment(0, 10);
 		sashForm.setLayoutData(fd_sashForm);
-		
+
 		tableProducts = new Table(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -255,24 +268,24 @@ public class Installer {
 		});
 		tableProducts.setHeaderVisible(true);
 		tableProducts.setLinesVisible(true);
-		
+
 		TableColumn tblclmnProductName = new TableColumn(tableProducts, SWT.NONE);
 		tblclmnProductName.setWidth(300);
 		tblclmnProductName.setText("Product name");
-		
+
 		tableVersions = new Table(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
 		tableVersions.setHeaderVisible(true);
 		tableVersions.setLinesVisible(true);
-		
+
 		TableColumn tblclmnVersion = new TableColumn(tableVersions, SWT.NONE);
 		tblclmnVersion.setWidth(200);
 		tblclmnVersion.setText("Version");
-		
+
 		TableColumn tblclmnDownloaded = new TableColumn(tableVersions, SWT.NONE);
 		tblclmnDownloaded.setWidth(100);
 		tblclmnDownloaded.setText("Downloaded");
-		sashForm.setWeights(new int[] {1, 1});
-		
+		sashForm.setWeights(new int[]{1, 1});
+
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
 		fd_sashForm.right = new FormAttachment(compositeButtons, -10);
 		compositeButtons.setLayout(new FormLayout());
@@ -282,7 +295,7 @@ public class Installer {
 		fd_compositeButtons.width = 100;
 		fd_compositeButtons.right = new FormAttachment(100, -10);
 		compositeButtons.setLayoutData(fd_compositeButtons);
-		
+
 		btnRefresh = new Button(compositeButtons, SWT.NONE);
 		btnRefresh.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -296,7 +309,7 @@ public class Installer {
 		fd_btnRefresh.right = new FormAttachment(0, 100);
 		btnRefresh.setLayoutData(fd_btnRefresh);
 		btnRefresh.setText("Refresh");
-		
+
 		btnDownload = new Button(compositeButtons, SWT.NONE);
 		btnDownload.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -310,7 +323,7 @@ public class Installer {
 		fd_btnDownload.right = new FormAttachment(0, 100);
 		btnDownload.setLayoutData(fd_btnDownload);
 		btnDownload.setText("Download");
-		
+
 		btnInstall = new Button(compositeButtons, SWT.NONE);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -324,7 +337,7 @@ public class Installer {
 		fd_btnInstall.right = new FormAttachment(0, 100);
 		btnInstall.setLayoutData(fd_btnInstall);
 		btnInstall.setText("Install");
-		
+
 		btnUninstall = new Button(compositeButtons, SWT.NONE);
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
