@@ -83,6 +83,7 @@ public class CLI {
 					new File(settings.getSiteDataDir()), settings.getProductListUrl());
 			if (command.equalsIgnoreCase(COMMAND_DOWNLOAD)) {
 				deployerEngine.download(product, version);
+				writeExitCodeToFileOrJustExit(0, exitcodeFile);
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
 				DeploymentResult result = deployerEngine.deploy(product, version);
