@@ -87,10 +87,10 @@ public class CLI {
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
 				DeploymentResult result = deployerEngine.deploy(product, version);
-				if (result != DeploymentResult.OK) {
-					writeExitCodeToFileOrJustExit(2, exitcodeFile);
-				} else {
+				if (result == DeploymentResult.OK || result == DeploymentResult.ALREADY_INSTALLED) {
 					writeExitCodeToFileOrJustExit(0, exitcodeFile);
+				} else {
+					writeExitCodeToFileOrJustExit(2, exitcodeFile);
 				}
 			}
 		} catch (Exception e) {
