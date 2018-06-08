@@ -1,6 +1,5 @@
 package org.scm4j.installer;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
@@ -118,7 +117,7 @@ public class Progress extends Dialog {
 			OutputStream textLogOutputStream = new OutputStream() {
 				private StringBuffer stringBuffer = new StringBuffer();
 				@Override
-				public synchronized void write(int b) throws IOException {
+				public synchronized void write(int b) {
 					stringBuffer.append(String.valueOf((char) b));
 					if (b == '\n') {
 						final String finalString = stringBuffer.toString();

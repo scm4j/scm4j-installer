@@ -1,65 +1,41 @@
 package org.scm4j.installer;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.net.URISyntaxException;
 
-public class Settings {
+public final class Settings {
 
-	private static String runningPath = System.getProperty("user.dir");
-	private static String defaultProductListUrl = "https://dev.untill.com/artifactory/repo";
-	private static String propertiesFileName = "installer.properties";
-	private static String productName = "scm4j-installer";
-	private final static String PROPERTY_SITE_DATA_DIR = "siteDataDir";
-	private final static String PROPERTY_PRODUCT_LIST_URL = "productListUrl";
+	public static final String WORKING_FOLDER = "C:/ProgramData/unTill/installer";
+	public static final String PRODUCT_NAME = "scm4j-installer";
+	public static final String PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
+	private static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
 
-	public static void setRunningPath(String runningPath) {
-		Settings.runningPath = runningPath;
+	private Settings() {
 	}
 
-	public static void setDefaultProductListUrl(String defaultProductListUrl) {
-		Settings.defaultProductListUrl = defaultProductListUrl;
-	}
-
-	public static void setPropertiesFileName(String propertiesFileName) {
-		Settings.propertiesFileName = propertiesFileName;
-	}
-
-	public static void setProductName(String productName) {
-		Settings.productName = productName;
-	}
-
-	public static String getProductName() {
-		return productName;
-	}
-	private Properties properties;
-	private String siteDataDir;
-	private String productListUrl;
-
-	public Settings() {
-		properties = new Properties();
-		File propertiesFile = new File(runningPath, propertiesFileName);
-		if (propertiesFile.exists()) {
-			try (InputStream inputStream = new FileInputStream(propertiesFile)) {
-				properties.load(inputStream);
-			} catch (IOException e) {
-				// TODO show warning?
-				e.printStackTrace();
-			}
+	private static File getRunningFolder() {
+		try {
+			return new File(Settings.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath())
+					.getParentFile().getParentFile();
+		} catch (URISyntaxException e) {
+			return new File(System.getProperty("user.dir")).getParentFile();
 		}
-		siteDataDir = properties.getProperty(PROPERTY_SITE_DATA_DIR);
-		if (siteDataDir == null)
-			siteDataDir = runningPath;
-		productListUrl = properties.getProperty(PROPERTY_PRODUCT_LIST_URL, defaultProductListUrl);
 	}
 
-	public String getSiteDataDir() {
-		return siteDataDir;
+	private static boolean isPortable() {
+		String fileName = getRunningFolder().getPath().replace('\\', '/');
+		return !fileName.startsWith(DEFAULT_INSTALLER_URL);
 	}
 
-	public String getProductListUrl() {
-		return productListUrl;
+	public static File getWorkingFolder() {
+		return new File(Settings.WORKING_FOLDER);
+	}
+
+	public static File getPortableFolder() {
+		if (isPortable()) {
+			return new File(getRunningFolder().getPath().replace('\\', '/'));
+		} else {
+			return null;
+		}
 	}
 }

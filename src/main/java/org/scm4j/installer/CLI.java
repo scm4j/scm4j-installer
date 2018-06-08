@@ -72,15 +72,14 @@ public class CLI {
 		}
 		if (errorMessage != null) {
 			System.err.println(errorMessage);
-			formatter.printHelp(Settings.getProductName() + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
+			formatter.printHelp(Settings.PRODUCT_NAME + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
 					+ " <product> <version>", options);
 			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
 
 		try {
-			Settings settings = new Settings();
-			DeployerEngine deployerEngine = new DeployerEngine(new File(settings.getSiteDataDir()),
-					new File(settings.getSiteDataDir()), settings.getProductListUrl());
+			DeployerEngine deployerEngine = new DeployerEngine(Settings.getPortableFolder(),
+					Settings.getWorkingFolder(), Settings.PRODUCT_LIST_URL);
 			if (command.equalsIgnoreCase(COMMAND_DOWNLOAD)) {
 				deployerEngine.download(product, version);
 				writeExitCodeToFileOrJustExit(0, exitcodeFile);

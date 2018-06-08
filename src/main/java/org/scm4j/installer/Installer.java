@@ -19,7 +19,6 @@ import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
 import java.beans.Beans;
-import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.Map;
 
 public class Installer {
 
-	private Settings settings;
 	private DeployerEngine deployerEngine;
 
 	protected Shell shlInstaller;
@@ -75,16 +73,14 @@ public class Installer {
 	}
 
 	private void init() {
-		settings = new Settings();
-
 		getProducts();
 	}
 
 	private DeployerEngine getDeployerEngine() {
-		// TODO use flash/workingFolder
-		if (deployerEngine == null)
-			deployerEngine = new DeployerEngine(new File(settings.getSiteDataDir()), new File(settings.getSiteDataDir()),
-					settings.getProductListUrl());
+		if (deployerEngine == null) {
+			deployerEngine = new DeployerEngine(Settings.getPortableFolder(), Settings.getWorkingFolder(),
+					Settings.PRODUCT_LIST_URL);
+		}
 		return deployerEngine;
 	}
 
@@ -110,7 +106,7 @@ public class Installer {
 		}
 	}
 
-	private void fillVersions(Map<String, Boolean> versions, boolean refresh) {
+	private void fillVersions(Map<String, Boolean> versions, Map<String, Boolean> deployedVersion, boolean refresh) {
 		String selectedVersion = null;
 		if (refresh && tableVersions.getSelectionIndex() != -1)
 			selectedVersion = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
@@ -119,6 +115,7 @@ public class Installer {
 			TableItem item = new TableItem(tableVersions, SWT.NONE);
 			item.setText(version);
 			item.setText(1, versions.get(version) ? "yes" : "no");
+			item.setText(2, deployedVersion.getOrDefault(version, false) ? "yes" : "no");
 			if (selectedVersion != null && selectedVersion.equals(version))
 				tableVersions.setSelection(item);
 		}
@@ -143,7 +140,8 @@ public class Installer {
 				String product = item.getText();
 				Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
 						: getDeployerEngine().listProductVersions(product);
-				fillVersions(versions, refresh);
+				Map<String, Boolean> deployedVersion = getDeployerEngine().listDeployedProducts(product);
+				fillVersions(versions, deployedVersion, refresh);
 			} else {
 				tableVersions.clearAll();
 			}
@@ -278,12 +276,17 @@ public class Installer {
 		tableVersions.setLinesVisible(true);
 
 		TableColumn tblclmnVersion = new TableColumn(tableVersions, SWT.NONE);
-		tblclmnVersion.setWidth(200);
+		tblclmnVersion.setWidth(100);
 		tblclmnVersion.setText("Version");
 
 		TableColumn tblclmnDownloaded = new TableColumn(tableVersions, SWT.NONE);
 		tblclmnDownloaded.setWidth(100);
 		tblclmnDownloaded.setText("Downloaded");
+		sashForm.setWeights(new int[]{1, 1});
+
+		TableColumn tblclmnDeployed = new TableColumn(tableVersions, SWT.NONE);
+		tblclmnDeployed.setWidth(100);
+		tblclmnDeployed.setText("Deployed");
 		sashForm.setWeights(new int[]{1, 1});
 
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
