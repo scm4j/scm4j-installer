@@ -16,8 +16,10 @@ import java.io.PrintStream;
 
 public class CLI {
 
-	private final static String COMMAND_DOWNLOAD = "download";
-	private final static String COMMAND_DEPLOY = "deploy";
+	private static final String COMMAND_DOWNLOAD = "download";
+	private static final String COMMAND_DEPLOY = "deploy";
+
+	private static final String SILENT_MODE_PROPERTY_NAME = "installer.silent";
 
 	public static void main(String[] args) {
 
@@ -27,6 +29,7 @@ public class CLI {
 
 		Options options = new Options()
 				.addOption("r", "result-folder", true, "Store stdout, stderr and exitcode to specified folder")
+				.addOption("i", "silent", false, "Sets the silent operation mode")
 				.addOption("s", "stacktrace", false, "Print out the stacktrace");
 
 		CommandLineParser parser = new DefaultParser();
@@ -76,6 +79,9 @@ public class CLI {
 					+ " <product> <version>", options);
 			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
+
+		if (cmdLine.hasOption("i"))
+			 System.setProperty(SILENT_MODE_PROPERTY_NAME, Boolean.toString(true));
 
 		try {
 			DeployerEngine deployerEngine = new DeployerEngine(Settings.getPortableFolder(),
