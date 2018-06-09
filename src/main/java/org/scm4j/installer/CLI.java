@@ -72,7 +72,7 @@ public class CLI {
 		}
 		if (errorMessage != null) {
 			System.err.println(errorMessage);
-			formatter.printHelp(Settings.PRODUCT_NAME + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
+			formatter.printHelp(Settings.getProductName() + " [options] " + COMMAND_DOWNLOAD + "|" + COMMAND_DEPLOY
 					+ " <product> <version>", options);
 			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
@@ -85,6 +85,7 @@ public class CLI {
 				writeExitCodeToFileOrJustExit(0, exitcodeFile);
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
+				Settings.copyJreIfNotExists();
 				DeploymentResult result = deployerEngine.deploy(product, version);
 				if (result == DeploymentResult.OK || result == DeploymentResult.ALREADY_INSTALLED) {
 					writeExitCodeToFileOrJustExit(0, exitcodeFile);

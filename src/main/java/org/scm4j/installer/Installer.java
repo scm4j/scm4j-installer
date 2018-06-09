@@ -181,6 +181,7 @@ public class Installer {
 		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 
+		Settings.copyJreIfNotExists();
 		Progress progress = new Progress(shlInstaller, "Deploying", () -> {
 			DeploymentResult result = getDeployerEngine().deploy(product, version);
 			String productAndVersion = product + "-" + version;
