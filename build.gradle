@@ -42,6 +42,7 @@ dependencies {
 
 	compile 'ch.qos.logback:logback-classic:1.2.3'
 	compile 'commons-cli:commons-cli:1.4'
+	compile 'com.github.vatbub:mslinks:1.0.4'
 
 	testCompile 'junit:junit:4.12'
 }
@@ -107,7 +108,7 @@ shadowJar {
 
 launch4j {
 	mainClassName = mainClass
-	bundledJrePath = '../jre'
+	bundledJrePath = '../jre-1.8.0_171'
 	jreRuntimeBits = '32'
 	copyConfigurable = project.tasks.shadowJar.outputs.files
 	jar = "lib/${project.tasks.shadowJar.archiveName}"
