@@ -7,6 +7,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+import org.eclipse.swt.widgets.Shell;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
@@ -70,8 +71,6 @@ public class CLI {
 			} catch (Exception e) {
 				errorMessage = "Can't create folder for logs in " + outputFolderName;
 			}
-		} else {
-			errorMessage = "You need to specify directory for flag result-folder!";
 		}
 		if (errorMessage != null) {
 			System.err.println(errorMessage);
@@ -80,23 +79,35 @@ public class CLI {
 			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
 
-		if (cmdLine.hasOption("i"))
-			 System.setProperty(SILENT_MODE_PROPERTY_NAME, Boolean.toString(true));
+		Shell shell = null;
+		if (cmdLine.hasOption("i")) {
+			System.setProperty(SILENT_MODE_PROPERTY_NAME, Boolean.toString(true));
+		} else {
+			shell = new Shell();
+		}
 
 		try {
 			DeployerEngine deployerEngine = new DeployerEngine(Settings.getPortableFolder(),
 					Settings.getWorkingFolder(), Settings.PRODUCT_LIST_URL);
 			if (command.equalsIgnoreCase(COMMAND_DOWNLOAD)) {
-				deployerEngine.download(product, version);
+				if (!cmdLine.hasOption("i")) {
+					Common.downloadWithProgress(shell, deployerEngine, product, version);
+				} else {
+					deployerEngine.download(product, version);
+				}
 				writeExitCodeToFileOrJustExit(0, exitcodeFile);
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
 				Settings.copyJreIfNotExists();
-				DeploymentResult result = deployerEngine.deploy(product, version);
-				if (result == DeploymentResult.OK || result == DeploymentResult.ALREADY_INSTALLED) {
-					writeExitCodeToFileOrJustExit(0, exitcodeFile);
+				if (!cmdLine.hasOption("i")) {
+					Common.deployWithProgress(shell, deployerEngine, product, version);
 				} else {
-					writeExitCodeToFileOrJustExit(2, exitcodeFile);
+					DeploymentResult result = deployerEngine.deploy(product, version);
+					if (result == DeploymentResult.OK || result == DeploymentResult.ALREADY_INSTALLED) {
+						writeExitCodeToFileOrJustExit(0, exitcodeFile);
+					} else {
+						writeExitCodeToFileOrJustExit(2, exitcodeFile);
+					}
 				}
 			}
 		} catch (Exception e) {

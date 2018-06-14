@@ -41,18 +41,15 @@ public class Progress extends Dialog {
 	 * @return the result
 	 */
 	public Object open() {
-		createContents();
+		Display display = getParent().getDisplay();
 
-		Rectangle parentSize = getParent().getBounds();
-		Rectangle shellSize = shell.getBounds();
-		shell.setLocation((parentSize.width - shellSize.width)/2+parentSize.x, (parentSize.height - shellSize.height)/2+parentSize.y);
+		createContents(display);
 
 		shell.open();
 		shell.layout();
 
 		startWork();
 
-		Display display = getParent().getDisplay();
 		while (!shell.isDisposed()) {
 			if (!display.readAndDispatch()) {
 				display.sleep();
@@ -64,11 +61,16 @@ public class Progress extends Dialog {
 	/**
 	 * Create contents of the dialog.
 	 */
-	private void createContents() {
+	private void createContents(Display display) {
 		shell = new Shell(getParent(), SWT.RESIZE | SWT.TITLE | SWT.PRIMARY_MODAL);
-		shell.setSize(400, 260);
 		shell.setText(getText());
+		shell.setSize(800, 400);
 		shell.setLayout(new FormLayout());
+
+		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
+		Rectangle shellSize = shell.getBounds();
+		shell.setLocation((monitorBounds.width - shellSize.width)/2+monitorBounds.x,
+				(monitorBounds.height - shellSize.height)/2+monitorBounds.y);
 		
 		progressBar = new ProgressBar(shell, SWT.NONE);
 		FormData fd_progressBar = new FormData();

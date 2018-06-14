@@ -4,13 +4,14 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -19,8 +20,6 @@ import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
 import java.beans.Beans;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
@@ -58,8 +57,8 @@ public class Installer {
 	 * Open the window.
 	 */
 	public void open() {
-		Display display = Display.getDefault();
-		createContents();
+		Display display = new Display();
+		createContents(display);
 		if (!Beans.isDesignTime()) {
 			init();
 		}
@@ -88,7 +87,7 @@ public class Installer {
 		try {
 			fillProducts(getDeployerEngine().listProducts());
 		} catch (Exception e) {
-			showError("Error getting product list", e);
+			Common.showError(shlInstaller, "Error getting product list", e);
 		}
 		refreshVersions(false);
 	}
@@ -129,7 +128,7 @@ public class Installer {
 			fillProducts(products);
 			refreshVersions(true);
 		} catch (Exception e) {
-			showError("Error refreshing product list", e);
+			Common.showError(shlInstaller, "Error refreshing product list", e);
 		}
 	}
 
@@ -146,7 +145,7 @@ public class Installer {
 				tableVersions.clearAll();
 			}
 		} catch (Exception e) {
-			showError("Error getting product versions", e);
+			Common.showError(shlInstaller, "Error getting product versions", e);
 		}
 		refreshButtons();
 	}
@@ -169,7 +168,7 @@ public class Installer {
 		Object result = progress.open();
 		if (result != null) {
 			if (result instanceof Throwable)
-				showError("Error downloading product", (Throwable) result);
+				Common.showError(shlInstaller, "Error downloading product", (Throwable) result);
 			// TODO else ?
 		}
 		getProducts();
@@ -188,6 +187,7 @@ public class Installer {
 			//TODO rewrite this!
 			switch (result) {
 			case OK:
+			case ALREADY_INSTALLED:
 				break;
 			case NEED_REBOOT:
 				System.err.println(productAndVersion + " need reboot");
@@ -203,7 +203,7 @@ public class Installer {
 		Object result = progress.open();
 		if (result != null) {
 			if (result instanceof Throwable)
-				showError("Error deploying product", (Throwable) result);
+				Common.showError(shlInstaller, "Error deploying product", (Throwable) result);
 			// TODO else ?
 		}
 		getProducts();
@@ -222,34 +222,25 @@ public class Installer {
 		Object result = progress.open();
 		if (result != null) {
 			if (result instanceof Throwable)
-				showError("Error undeploying product", (Throwable) result);
+				Common.showError(shlInstaller, "Error undeploying product", (Throwable) result);
 			// TODO else ?
 		}
 		getProducts();
 	}
 
-	private void showError(String message, final Throwable exception) {
-		MessageBox messageBox = new MessageBox(shlInstaller, SWT.ICON_ERROR | SWT.OK);
-		messageBox.setText(shlInstaller.getText());
-		if (message == null)
-			message = "";
-		if (exception != null) {
-			StringWriter sw = new StringWriter();
-			exception.printStackTrace(new PrintWriter(sw));
-			message += (message.isEmpty() ? "" : "\r\n") + sw.toString();
-		}
-		messageBox.setMessage(message);
-		messageBox.open();
-	}
-
 	/**
 	 * Create contents of the window.
 	 */
-	protected void createContents() {
-		shlInstaller = new Shell();
+	protected void createContents(Display display) {
+		shlInstaller = new Shell(display);
 		shlInstaller.setSize(450, 300);
 		shlInstaller.setText("Installer");
 		shlInstaller.setLayout(new FormLayout());
+
+		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
+		Rectangle shellSize = shlInstaller.getBounds();
+		shlInstaller.setLocation((monitorBounds.width - shellSize.width)/2+monitorBounds.x,
+				(monitorBounds.height - shellSize.height)/2+monitorBounds.y);
 
 		SashForm sashForm = new SashForm(shlInstaller, SWT.VERTICAL);
 		FormData fd_sashForm = new FormData();
