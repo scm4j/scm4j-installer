@@ -278,7 +278,7 @@ public class Installer {
 
 		TableColumn tblclmnDeployed = new TableColumn(tableVersions, SWT.NONE);
 		tblclmnDeployed.setWidth(100);
-		tblclmnDeployed.setText("Deployed");
+		tblclmnDeployed.setText("Installed");
 		sashForm.setWeights(new int[]{1, 1});
 
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
