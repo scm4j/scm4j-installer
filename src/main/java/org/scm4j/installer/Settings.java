@@ -27,15 +27,14 @@ public final class Settings {
 	private static File getRunningFolder() {
 		try {
 			return new File(Settings.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath())
-					.getParentFile().getParentFile();
+					.getParentFile();
 		} catch (URISyntaxException e) {
-			return new File(System.getProperty("user.dir")).getParentFile();
+			return new File(System.getProperty("user.dir"));
 		}
 	}
 
 	private static boolean isPortable() {
-		String fileName = getRunningFolder().getPath().replace('\\', '/');
-		return !fileName.startsWith(DEFAULT_INSTALLER_URL);
+		return !getRunningFolder().toPath().startsWith(DEFAULT_INSTALLER_URL);
 	}
 
 	public static File getWorkingFolder() {
@@ -44,7 +43,7 @@ public final class Settings {
 
 	public static File getPortableFolder() {
 		if (isPortable()) {
-			return new File(getRunningFolder().getPath().replace('\\', '/'));
+			return new File(getRunningFolder().getParentFile().getPath());
 		} else {
 			return null;
 		}
