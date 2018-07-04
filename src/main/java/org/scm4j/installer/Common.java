@@ -102,9 +102,9 @@ public final class Common {
 		LOG.info("Bat write successfully");
 		ProcessBuilder builder = new ProcessBuilder(taskEntry).redirectErrorStream(true);
 		Process p = builder.start();
+		int exitcode = p.waitFor();
 		String stdout = readStdout(p);
 		LOG.info("stdout from task creation " + stdout);
-		int exitcode = p.waitFor();
 		LOG.info("exit code from task creation is " + exitcode);
 		return exitcode;
 	}
