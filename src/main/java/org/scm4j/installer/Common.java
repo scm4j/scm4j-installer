@@ -6,15 +6,20 @@ import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
+import org.slf4j.Logger;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 
 public final class Common {
+
+	private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(Common.class);
 
 	private Common() {
 	}
@@ -94,9 +99,14 @@ public final class Common {
 		List<String> batCommands = Arrays.asList("@echo off", taskCommand,
 				"schtasks /delete /tn " + taskAndBatName + " /f", "(goto) 2>nul & del \"%~f0\"");
 		FileUtils.writeLines(tempBatFile, "UTF-8", batCommands);
-		ProcessBuilder builder = new ProcessBuilder(taskEntry);
+		LOG.info("Bat write successfully");
+		ProcessBuilder builder = new ProcessBuilder(taskEntry).redirectErrorStream(true);
 		Process p = builder.start();
-		return p.waitFor();
+		String stdout = readStdout(p);
+		LOG.info("stdout from task creation " + stdout);
+		int exitcode = p.waitFor();
+		LOG.info("exit code from task creation is " + exitcode);
+		return exitcode;
 	}
 
 	public static void restartPc() {
@@ -113,6 +123,18 @@ public final class Common {
 			if (result instanceof Throwable)
 				Common.showError(shell, message, (Throwable) result);
 			// TODO else ?
+		}
+	}
+
+	public static String readStdout(Process p) throws Exception{
+		StringBuilder sb = new StringBuilder();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+				p.getInputStream()))) {
+			String line;
+			while ((line = reader.readLine()) != null)
+				sb.append(line).append("\n");
+			p.waitFor();
+			return sb.toString();
 		}
 	}
 }

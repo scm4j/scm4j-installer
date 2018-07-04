@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.widgets.Shell;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.io.PrintStream;
 
 public class CLI {
 
+	private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(CLI.class);
 	private static final String COMMAND_DOWNLOAD = "download";
 	private static final String COMMAND_DEPLOY = "deploy";
 
@@ -111,6 +113,7 @@ public class CLI {
 					Common.deployWithProgress(shell, deployerEngine, product, version);
 				} else {
 					DeploymentResult result = deployerEngine.deploy(product, version);
+					LOG.info("result of deploy " + product + ' ' + version + " is " + result.toString());
 					int exitcode;
 					switch (result) {
 					case OK:
@@ -121,7 +124,7 @@ public class CLI {
 					case REBOOT_CONTINUE:
 						exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version, outputFolderName);
 						if (exitcode != 0)
-							writeExitCodeToFileOrJustExit(2, exitcodeFile);
+							writeExitCodeToFileOrJustExit(1, exitcodeFile);
 						else
 							Common.restartPc();
 						break;
@@ -129,7 +132,7 @@ public class CLI {
 						exitcode = Common.createBatAndTaskForWindowsTaskScheduler("@echo 0 > \""
 								+ exitcodeFile.getPath() + '\"');
 						if (exitcode != 0)
-							writeExitCodeToFileOrJustExit(2, exitcodeFile);
+							writeExitCodeToFileOrJustExit(1, exitcodeFile);
 						else
 							Common.restartPc();
 						break;
