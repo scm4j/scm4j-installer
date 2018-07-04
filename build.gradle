@@ -106,7 +106,7 @@ shadowJar {
 	configurations = [project.configurations.compile, project.configurations.shadowRuntime]
 }
 
-launch4j {
+createExe {
 	mainClassName = mainClass
 	bundledJrePath = '../jre-1.8.0_171'
 	jreRuntimeBits = '32'

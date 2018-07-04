@@ -25,9 +25,12 @@ public final class Settings {
 	}
 
 	private static File getRunningFolder() {
+		return getRunningFile().getParentFile();
+	}
+
+	public static File getRunningFile() {
 		try {
-			return new File(Settings.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath())
-					.getParentFile();
+			return new File(Settings.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 		} catch (URISyntaxException e) {
 			return new File(System.getProperty("user.dir"));
 		}

@@ -1,17 +1,23 @@
 package org.scm4j.installer;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.List;
 
 public final class Common {
 
-	private Common() {}
+	private Common() {
+	}
 
 	public static void showError(Shell shell, String message, final Throwable exception) {
 		MessageBox messageBox = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
@@ -27,7 +33,7 @@ public final class Common {
 		messageBox.open();
 	}
 
-	public static  void downloadWithProgress(Shell shell, DeployerEngine deployerEngine, String product, String version) {
+	public static void downloadWithProgress(Shell shell, DeployerEngine deployerEngine, String product, String version) {
 		Progress progress = new Progress(shell, "Downloading", () ->
 				deployerEngine.download(product, version));
 		Common.checkError(progress, shell, "Error downloading product");
@@ -37,16 +43,28 @@ public final class Common {
 		Progress progress = new Progress(shell, "Deploying", () -> {
 			DeploymentResult result = deployerEngine.deploy(product, version);
 			String productAndVersion = product + "-" + version;
-			//TODO rewrite this!
 			switch (result) {
 			case OK:
 			case ALREADY_INSTALLED:
+			case NEWER_VERSION_EXISTS:
 				break;
 			case NEED_REBOOT:
 				System.err.println(productAndVersion + " need reboot");
-				//TODO why we need reboot? don't stop or smth else?
+				break;
+			case REBOOT_CONTINUE:
+				int exitcode = 0;
+				try {
+					exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version);
+				} catch (Exception e) {
+					System.err.println(e.toString() + "\n" + productAndVersion + " deploying failed!");
+				}
+				if (exitcode != 0)
+					System.err.println("Can't create task to exec after reboot, task FAILED");
+				else
+					System.err.println("Installation will be successful after reboot");
 				break;
 			case FAILED:
+			case INCOMPATIBLE_API_VERSION:
 				System.err.println(productAndVersion + " deploying failed!");
 				break;
 			default:
@@ -54,6 +72,39 @@ public final class Common {
 			}
 		});
 		checkError(progress, shell, "Error deploying product");
+	}
+
+	public static int createBatAndTaskForWindowsTaskScheduler(String product, String version, String outputFolderName)
+			throws Exception {
+		return createBatAndTaskForWindowsTaskScheduler("\"start cmd /c " + Settings.getRunningFile().getPath()
+				+ " deploy " + product + ' ' + version + " -a -i -r \"" + outputFolderName + '\"');
+	}
+
+	public static int createBatAndTaskForWindowsTaskScheduler(String product, String version)
+			throws Exception {
+		return createBatAndTaskForWindowsTaskScheduler("\"start cmd /c " + Settings.getRunningFile().getPath()
+				+ " deploy " + product + ' ' + version + " -a\"");
+	}
+
+	public static int createBatAndTaskForWindowsTaskScheduler(String taskCommand) throws Exception {
+		String taskAndBatName = "afterReboot" + System.nanoTime();
+		File tempBatFile = new File(System.getProperty("java.io.tmpdir"), taskAndBatName + ".bat");
+		List<String> taskEntry = Arrays.asList("schtasks", "/Create", "/ru", "\"System\"", "/tn", taskAndBatName, "/sc",
+				"ONSTART", "/rl", "highest", "/tr", '\"' + tempBatFile.getPath() + '\"');
+		List<String> batCommands = Arrays.asList("@echo off", taskCommand,
+				"schtasks /delete /tn " + taskAndBatName + " /f", "(goto) 2>nul & del \"%~f0\"");
+		FileUtils.writeLines(tempBatFile, "UTF-8", batCommands);
+		ProcessBuilder builder = new ProcessBuilder(taskEntry);
+		Process p = builder.start();
+		return p.waitFor();
+	}
+
+	public static void restartPc() {
+		try {
+			Runtime.getRuntime().exec("shutdown -r");
+		} catch (IOException e) {
+		}
+		System.exit(0);
 	}
 
 	public static void checkError(Progress progress, Shell shell, String message) {

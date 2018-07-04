@@ -11,7 +11,6 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -35,11 +34,6 @@ public class Installer {
 	private Button btnInstall;
 	private Button btnUninstall;
 
-	/**
-	 * Launch the application.
-	 *
-	 * @param args
-	 */
 	public static void main(String[] args) {
 		if (args.length > 0) {
 			CLI.main(args);
@@ -181,31 +175,7 @@ public class Installer {
 		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 
 		Settings.copyJreIfNotExists();
-		Progress progress = new Progress(shlInstaller, "Deploying", () -> {
-			DeploymentResult result = getDeployerEngine().deploy(product, version);
-			String productAndVersion = product + "-" + version;
-			//TODO rewrite this!
-			switch (result) {
-			case OK:
-			case ALREADY_INSTALLED:
-				break;
-			case NEED_REBOOT:
-				System.err.println(productAndVersion + " need reboot");
-				//TODO why we need reboot? don't stop or smth else?
-				break;
-			case FAILED:
-				System.err.println(productAndVersion + " deploying failed!");
-				break;
-			default:
-				throw new RuntimeException("Invalid result!");
-			}
-		});
-		Object result = progress.open();
-		if (result != null) {
-			if (result instanceof Throwable)
-				Common.showError(shlInstaller, "Error deploying product", (Throwable) result);
-			// TODO else ?
-		}
+		Common.deployWithProgress(shlInstaller, getDeployerEngine(), product, version);
 		getProducts();
 	}
 
@@ -219,12 +189,7 @@ public class Installer {
 			if (result != DeploymentResult.OK)
 				System.err.println(result);
 		});
-		Object result = progress.open();
-		if (result != null) {
-			if (result instanceof Throwable)
-				Common.showError(shlInstaller, "Error undeploying product", (Throwable) result);
-			// TODO else ?
-		}
+		Common.checkError(progress, shlInstaller, "Error undeploying product");
 		getProducts();
 	}
 
