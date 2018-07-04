@@ -76,13 +76,13 @@ public final class Common {
 
 	public static int createBatAndTaskForWindowsTaskScheduler(String product, String version, String outputFolderName)
 			throws Exception {
-		return createBatAndTaskForWindowsTaskScheduler("\"start cmd /c " + Settings.getRunningFile().getPath()
-				+ " deploy " + product + ' ' + version + " -a -i -r \"" + outputFolderName + '\"');
+		return createBatAndTaskForWindowsTaskScheduler("start cmd /c \"" + Settings.getRunningFile().getPath()
+				+ " deploy " + product + ' ' + version + " -a -i -r \"" + outputFolderName + "\"\"");
 	}
 
 	public static int createBatAndTaskForWindowsTaskScheduler(String product, String version)
 			throws Exception {
-		return createBatAndTaskForWindowsTaskScheduler("\"start cmd /c " + Settings.getRunningFile().getPath()
+		return createBatAndTaskForWindowsTaskScheduler("start cmd /c \"" + Settings.getRunningFile().getPath()
 				+ " deploy " + product + ' ' + version + " -a\"");
 	}
 
