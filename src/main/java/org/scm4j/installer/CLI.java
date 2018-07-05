@@ -82,6 +82,7 @@ public class CLI {
 			errorMessage = "Can't use silent mode without -r <folder>";
 		}
 		if (errorMessage != null) {
+			LOG.warn(errorMessage);
 			if (cmdLine.hasOption("r"))
 				System.err.println(errorMessage);
 			else
