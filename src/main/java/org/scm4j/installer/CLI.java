@@ -150,7 +150,8 @@ public class CLI {
 				System.err.println(e.getMessage());
 			else
 				Common.showError(shell, e.toString(), e);
-			writeExitCodeToFileOrJustExit(2, exitcodeFile);
+			LOG.warn(e.toString());
+			writeExitCodeToFileOrJustExit(3, exitcodeFile);
 		}
 	}
 
