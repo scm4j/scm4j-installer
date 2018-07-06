@@ -42,7 +42,6 @@ dependencies {
 
 	compile 'ch.qos.logback:logback-classic:1.2.3'
 	compile 'commons-cli:commons-cli:1.4'
-	compile 'com.github.vatbub:mslinks:1.0.4'
 
 	testCompile 'junit:junit:4.12'
 }
