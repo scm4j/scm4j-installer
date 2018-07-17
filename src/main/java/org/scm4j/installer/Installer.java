@@ -1,6 +1,11 @@
 package org.scm4j.installer;
 
+import java.beans.Beans;
+import java.util.List;
+import java.util.Map;
+
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.BusyIndicator;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -17,10 +22,6 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
-
-import java.beans.Beans;
-import java.util.List;
-import java.util.Map;
 
 public class Installer {
 
@@ -66,7 +67,13 @@ public class Installer {
 	}
 
 	private void init() {
-		getProducts();
+		Wait wait = new Wait(shlInstaller);
+		wait.open();
+		try {
+			getProducts();
+		} finally {
+			wait.close();
+		}
 	}
 
 	private DeployerEngine getDeployerEngine() {
@@ -117,13 +124,15 @@ public class Installer {
 	}
 
 	private void refresh() {
-		try {
-			List<String> products = getDeployerEngine().refreshProducts();
-			fillProducts(products);
-			refreshVersions(true);
-		} catch (Exception e) {
-			Common.showError(shlInstaller, "Error refreshing product list", e);
-		}
+		BusyIndicator.showWhile(null, () -> {
+			try {
+				List<String> products = getDeployerEngine().refreshProducts();
+				fillProducts(products);
+				refreshVersions(true);
+			} catch (Exception e) {
+				Common.showError(shlInstaller, "Error refreshing product list", e);
+			}
+		});
 	}
 
 	private void refreshVersions(boolean refresh) {

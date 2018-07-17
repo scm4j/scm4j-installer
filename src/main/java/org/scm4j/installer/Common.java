@@ -1,13 +1,5 @@
 package org.scm4j.installer;
 
-import org.apache.commons.io.FileUtils;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
-import org.scm4j.deployer.api.DeploymentResult;
-import org.scm4j.deployer.engine.DeployerEngine;
-import org.slf4j.Logger;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +8,16 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
+import org.scm4j.deployer.api.DeploymentResult;
+import org.scm4j.deployer.engine.DeployerEngine;
+import org.slf4j.Logger;
 
 public final class Common {
 
@@ -137,4 +139,12 @@ public final class Common {
 			return sb.toString();
 		}
 	}
+
+	public static void centerWindow(Display display, Shell shlLoading) {
+		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
+		Rectangle shellSize = shlLoading.getBounds();
+		shlLoading.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
+				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
+	}
+
 }
