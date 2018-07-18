@@ -14,7 +14,6 @@ public class Wait extends Dialog {
 	/**
 	 * Create the dialog.
 	 * @param parent
-	 * @param style
 	 */
 	public Wait(Shell parent) {
 		super(parent);

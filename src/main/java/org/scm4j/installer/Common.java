@@ -54,6 +54,7 @@ public final class Common {
 			case OK:
 			case ALREADY_INSTALLED:
 			case NEWER_VERSION_EXISTS:
+				System.out.println(productAndVersion + ' ' + result.toString());
 				break;
 			case NEED_REBOOT:
 				System.err.println(productAndVersion + " need reboot");

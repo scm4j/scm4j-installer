@@ -1,9 +1,5 @@
 package org.scm4j.installer;
 
-import java.beans.Beans;
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.BusyIndicator;
 import org.eclipse.swt.custom.SashForm;
@@ -22,6 +18,11 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
+
+import java.beans.Beans;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Installer {
 
@@ -90,7 +91,7 @@ public class Installer {
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting product list", e);
 		}
-		refreshVersions(false);
+		refreshVersions(false, false);
 	}
 
 	private void fillProducts(List<String> products) {
@@ -106,12 +107,16 @@ public class Installer {
 		}
 	}
 
-	private void fillVersions(Map<String, Boolean> versions, Map<String, Boolean> deployedVersion, boolean refresh) {
+	private void fillVersions(Map<String, Boolean> versions, Map<String, Boolean> deployedVersion, boolean refresh,
+	                          boolean isSnapshotEnabled) {
 		String selectedVersion = null;
 		if (refresh && tableVersions.getSelectionIndex() != -1)
 			selectedVersion = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 		tableVersions.removeAll();
-		for (String version : versions.keySet()) {
+		Set<String> versionsSet = versions.keySet();
+		if (!isSnapshotEnabled)
+			versionsSet.removeIf(s -> s.contains("SNAPSHOT"));
+		for (String version : versionsSet) {
 			TableItem item = new TableItem(tableVersions, SWT.NONE);
 			item.setText(version);
 			item.setText(1, versions.get(version) ? "yes" : "no");
@@ -123,19 +128,19 @@ public class Installer {
 			tableVersions.setSelection(tableVersions.getItemCount() - 1);
 	}
 
-	private void refresh() {
+	private void refresh(boolean isSnapshotEnabled) {
 		BusyIndicator.showWhile(null, () -> {
 			try {
 				List<String> products = getDeployerEngine().refreshProducts();
 				fillProducts(products);
-				refreshVersions(true);
+				refreshVersions(true, isSnapshotEnabled);
 			} catch (Exception e) {
 				Common.showError(shlInstaller, "Error refreshing product list", e);
 			}
 		});
 	}
 
-	private void refreshVersions(boolean refresh) {
+	private void refreshVersions(boolean refresh, boolean isSnapshotEnabled) {
 		try {
 			if (tableProducts.getSelectionIndex() != -1) {
 				TableItem item = tableProducts.getItem(tableProducts.getSelectionIndex());
@@ -143,7 +148,7 @@ public class Installer {
 				Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
 						: getDeployerEngine().listProductVersions(product);
 				Map<String, Boolean> deployedVersion = getDeployerEngine().listDeployedProducts(product);
-				fillVersions(versions, deployedVersion, refresh);
+				fillVersions(versions, deployedVersion, refresh, isSnapshotEnabled);
 			} else {
 				tableVersions.clearAll();
 			}
@@ -213,8 +218,8 @@ public class Installer {
 
 		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
 		Rectangle shellSize = shlInstaller.getBounds();
-		shlInstaller.setLocation((monitorBounds.width - shellSize.width)/2+monitorBounds.x,
-				(monitorBounds.height - shellSize.height)/2+monitorBounds.y);
+		shlInstaller.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
+				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
 
 		SashForm sashForm = new SashForm(shlInstaller, SWT.VERTICAL);
 		FormData fd_sashForm = new FormData();
@@ -227,7 +232,7 @@ public class Installer {
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				refreshVersions(false);
+				refreshVersions(false, false);
 			}
 		});
 		tableProducts.setHeaderVisible(true);
@@ -269,7 +274,10 @@ public class Installer {
 		btnRefresh.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				refresh();
+				if ((e.stateMask & SWT.CTRL) != 0 && (e.stateMask & SWT.SHIFT) != 0)
+					refresh(true);
+				else
+					refresh(false);
 			}
 		});
 		FormData fd_btnRefresh = new FormData();
