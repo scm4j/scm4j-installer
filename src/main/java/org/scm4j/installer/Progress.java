@@ -1,8 +1,5 @@
 package org.scm4j.installer;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -16,6 +13,9 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 public class Progress extends Dialog {
 
