@@ -188,7 +188,12 @@ public class Installer {
 		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
 		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
 
-		Settings.copyJreIfNotExists();
+		try {
+			Common.copyJreIfNotExists();
+		} catch (RuntimeException e) {
+			Common.showError(shlInstaller, "jre doesn't present in one package back, please download"
+					+ "it somewhere!", e);
+		}
 		Common.deployWithProgress(shlInstaller, getDeployerEngine(), product, version);
 		getProducts();
 	}

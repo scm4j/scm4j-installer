@@ -109,7 +109,7 @@ public class CLI {
 				writeExitCodeToFileOrJustExit(0, exitcodeFile);
 			}
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
-				Settings.copyJreIfNotExists();
+				Common.copyJreIfNotExists();
 				if (!cmdLine.hasOption("i")) {
 					Common.deployWithProgress(shell, deployerEngine, product, version);
 				} else {
@@ -161,6 +161,7 @@ public class CLI {
 			try {
 				FileUtils.writeStringToFile(exitcodeFile, Integer.toString(exitcode), "UTF-8");
 			} catch (IOException e) {
+				//ok
 			}
 		}
 		System.exit(exitcode);

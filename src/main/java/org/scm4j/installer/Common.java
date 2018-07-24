@@ -6,12 +6,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
 
+import com.sun.deploy.config.OSType;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.internal.win32.OS;
+import org.eclipse.swt.internal.win32.OSVERSIONINFO;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
@@ -98,7 +103,11 @@ public final class Common {
 		String taskAndBatName = "afterReboot" + System.nanoTime();
 		File tempBatFile = new File(System.getProperty("java.io.tmpdir"), taskAndBatName + ".bat");
 		List<String> taskEntry = Arrays.asList("schtasks", "/Create", "/ru", "\"System\"", "/tn", taskAndBatName, "/sc",
-				"ONSTART", "/rl", "highest", "/tr", '\"' + tempBatFile.getPath() + '\"');
+				"ONSTART", "/tr", '\"' + tempBatFile.getPath() + '\"');
+		if(!SystemUtils.IS_OS_WINDOWS_XP) {
+			taskEntry.add("/rl");
+			taskEntry.add("highest");
+		}
 		List<String> batCommands = Arrays.asList("@echo off", taskCommand,
 				"schtasks /delete /tn " + taskAndBatName + " /f", "(goto) 2>nul & del \"%~f0\"");
 		FileUtils.writeLines(tempBatFile, "UTF-8", batCommands);
@@ -116,6 +125,7 @@ public final class Common {
 		try {
 			Runtime.getRuntime().exec("shutdown -r");
 		} catch (IOException e) {
+			//ok
 		}
 		System.exit(0);
 	}
@@ -148,4 +158,20 @@ public final class Common {
 				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
 	}
 
+	public static void copyJreIfNotExists() {
+		String jreVersion = "jre-1.8.0_171";
+		File jreFile = new File(Settings.DEFAULT_INSTALLER_URL, jreVersion);
+		if (!jreFile.exists()) {
+			jreFile.mkdirs();
+			try {
+				String path = Settings.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+				String decodedPath = URLDecoder.decode(path, "UTF-8");
+				File jarFile = new File(decodedPath);
+				File installerJreFile = new File(jarFile.getParentFile().getParentFile(), jreVersion);
+				FileUtils.copyDirectory(installerJreFile, jreFile);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
 }

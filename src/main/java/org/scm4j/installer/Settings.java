@@ -1,16 +1,13 @@
 package org.scm4j.installer;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 
 public final class Settings {
 
 	public static final String WORKING_FOLDER = "C:/ProgramData/unTill/installer";
 	public static final String PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
-	private static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
+	public static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
 	private static String productName = "scm4j-installer";
 
 	private Settings() {
@@ -52,20 +49,4 @@ public final class Settings {
 		}
 	}
 
-	public static void copyJreIfNotExists() {
-		String jreVersion = "jre-1.8.0_171";
-		File jreFile = new File(DEFAULT_INSTALLER_URL, jreVersion);
-		if (!jreFile.exists()) {
-			jreFile.mkdirs();
-			try {
-				String path = Settings.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-				String decodedPath = URLDecoder.decode(path, "UTF-8");
-				File jarFile = new File(decodedPath);
-				File installerJreFile = new File(jarFile.getParentFile().getParentFile(), jreVersion);
-				FileUtils.copyDirectory(installerJreFile, jreFile);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
 }
