@@ -1,5 +1,16 @@
 package org.scm4j.installer;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
+import org.scm4j.deployer.api.DeploymentResult;
+import org.scm4j.deployer.engine.DeployerEngine;
+import org.slf4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -9,20 +20,6 @@ import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
-
-import com.sun.deploy.config.OSType;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.internal.win32.OS;
-import org.eclipse.swt.internal.win32.OSVERSIONINFO;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
-import org.scm4j.deployer.api.DeploymentResult;
-import org.scm4j.deployer.engine.DeployerEngine;
-import org.slf4j.Logger;
 
 public final class Common {
 
