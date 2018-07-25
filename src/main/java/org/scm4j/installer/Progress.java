@@ -38,6 +38,7 @@ public class Progress extends Dialog {
 
 	/**
 	 * Open the dialog.
+	 *
 	 * @return the result
 	 */
 	public Object open() {
@@ -69,23 +70,23 @@ public class Progress extends Dialog {
 
 		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
 		Rectangle shellSize = shell.getBounds();
-		shell.setLocation((monitorBounds.width - shellSize.width)/2+monitorBounds.x,
-				(monitorBounds.height - shellSize.height)/2+monitorBounds.y);
-		
+		shell.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
+				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
+
 		progressBar = new ProgressBar(shell, SWT.NONE);
 		FormData fd_progressBar = new FormData();
 		fd_progressBar.top = new FormAttachment(0, 10);
 		fd_progressBar.left = new FormAttachment(0, 10);
 		fd_progressBar.right = new FormAttachment(100, -10);
 		progressBar.setLayoutData(fd_progressBar);
-		
+
 		textLog = new Text(shell, SWT.BORDER | SWT.READ_ONLY | SWT.H_SCROLL | SWT.V_SCROLL | SWT.CANCEL | SWT.MULTI);
 		FormData fd_textLog = new FormData();
 		fd_textLog.right = new FormAttachment(progressBar, 0, SWT.RIGHT);
 		fd_textLog.top = new FormAttachment(progressBar, 6);
 		fd_textLog.left = new FormAttachment(0, 10);
 		textLog.setLayoutData(fd_textLog);
-		
+
 		btnClose = new Button(shell, SWT.NONE);
 		btnClose.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -107,7 +108,7 @@ public class Progress extends Dialog {
 	private void startWork() {
 
 		new ProcessThread().start();
-		
+
 	}
 
 	class ProcessThread extends Thread {
@@ -117,17 +118,17 @@ public class Progress extends Dialog {
 			PrintStream standardOut = System.out;
 			PrintStream standardErr = System.err;
 			OutputStream textLogOutputStream = new OutputStream() {
-				private StringBuffer stringBuffer = new StringBuffer();
+				private StringBuilder stringBuilder = new StringBuilder();
+
 				@Override
 				public synchronized void write(int b) {
-					stringBuffer.append(String.valueOf((char) b));
+					stringBuilder.append(String.valueOf((char) b));
 					if (b == '\n') {
-						final String finalString = stringBuffer.toString();
+						String finalString = stringBuilder.toString();
 						Display display = getParent().getDisplay();
-						display.syncExec(() -> {
-							textLog.append(finalString);
-						});
-						stringBuffer.setLength(0);
+						if (finalString.matches("^\\d{2}-\\d{2}-\\d{2}.*?(\r)\n$"))
+							display.syncExec(() -> textLog.append(finalString));
+						stringBuilder.setLength(0);
 					}
 				}
 			};
@@ -146,7 +147,7 @@ public class Progress extends Dialog {
 					}
 				}
 				Throwable finalException = exception;
-	
+
 				// update progressBar
 				Display display = getParent().getDisplay();
 				display.syncExec(() -> {

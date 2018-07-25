@@ -11,10 +11,8 @@ import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 import org.slf4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
@@ -56,26 +54,26 @@ public final class Common {
 			case OK:
 			case ALREADY_INSTALLED:
 			case NEWER_VERSION_EXISTS:
-				System.out.println(productAndVersion + ' ' + result.toString());
+				LOG.info(productAndVersion + ' ' + result.toString());
 				break;
 			case NEED_REBOOT:
-				System.err.println(productAndVersion + " need reboot");
+				LOG.warn(productAndVersion + " need reboot");
 				break;
 			case REBOOT_CONTINUE:
 				int exitcode = 0;
 				try {
 					exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version);
 				} catch (Exception e) {
-					System.err.println(e.toString() + "\n" + productAndVersion + " deploying failed!");
+					LOG.warn(e.toString() + "\n" + productAndVersion + " deploying failed!");
 				}
 				if (exitcode != 0)
-					System.err.println("Can't create task to exec after reboot, task FAILED");
+					LOG.warn("Can't create task to exec after reboot, task FAILED");
 				else
-					System.err.println("Installation will be successful after reboot");
+					LOG.warn("Installation will be successful after reboot");
 				break;
 			case FAILED:
 			case INCOMPATIBLE_API_VERSION:
-				System.err.println(productAndVersion + " deploying failed!");
+				LOG.warn(productAndVersion + " deploying failed!");
 				break;
 			default:
 				throw new RuntimeException("Invalid result!");
@@ -101,7 +99,7 @@ public final class Common {
 		File tempBatFile = new File(System.getProperty("java.io.tmpdir"), taskAndBatName + ".bat");
 		List<String> taskEntry = Arrays.asList("schtasks", "/Create", "/ru", "\"System\"", "/tn", taskAndBatName, "/sc",
 				"ONSTART", "/tr", '\"' + tempBatFile.getPath() + '\"');
-		if(!SystemUtils.IS_OS_WINDOWS_XP) {
+		if (!SystemUtils.IS_OS_WINDOWS_XP) {
 			taskEntry.add("/rl");
 			taskEntry.add("highest");
 		}
@@ -112,8 +110,6 @@ public final class Common {
 		ProcessBuilder builder = new ProcessBuilder(taskEntry).redirectErrorStream(true);
 		Process p = builder.start();
 		int exitcode = p.waitFor();
-		String stdout = readStdout(p);
-		LOG.info("stdout from task creation " + stdout);
 		LOG.info("exit code from task creation is " + exitcode);
 		return exitcode;
 	}
@@ -132,19 +128,6 @@ public final class Common {
 		if (result != null) {
 			if (result instanceof Throwable)
 				Common.showError(shell, message, (Throwable) result);
-			// TODO else ?
-		}
-	}
-
-	public static String readStdout(Process p) throws Exception{
-		StringBuilder sb = new StringBuilder();
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-				p.getInputStream()))) {
-			String line;
-			while ((line = reader.readLine()) != null)
-				sb.append(line).append("\n");
-			p.waitFor();
-			return sb.toString();
 		}
 	}
 
