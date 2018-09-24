@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -97,8 +98,8 @@ public final class Common {
 	public static int createBatAndTaskForWindowsTaskScheduler(String taskCommand) throws Exception {
 		String taskAndBatName = "afterReboot" + System.nanoTime();
 		File tempBatFile = new File(System.getProperty("java.io.tmpdir"), taskAndBatName + ".bat");
-		List<String> taskEntry = Arrays.asList("schtasks", "/Create", "/ru", "\"System\"", "/tn", taskAndBatName, "/sc",
-				"ONSTART", "/tr", '\"' + tempBatFile.getPath() + '\"');
+		List<String> taskEntry = new ArrayList<>(Arrays.asList("schtasks", "/Create", "/ru", "\"System\"", "/tn",
+				taskAndBatName, "/sc", "ONSTART", "/tr", '\"' + tempBatFile.getPath() + '\"'));
 		if (!SystemUtils.IS_OS_WINDOWS_XP) {
 			taskEntry.add("/rl");
 			taskEntry.add("highest");
