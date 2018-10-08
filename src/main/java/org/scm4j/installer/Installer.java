@@ -1,6 +1,7 @@
 package org.scm4j.installer;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -11,8 +12,10 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -26,15 +29,19 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class Installer {
 
 	private DeployerEngine deployerEngine;
 
 	protected Shell shlInstaller;
+	private Shell shlDeployment;
 	private Table tableProducts;
 	private Button btnInstall;
 	private Button btnUninstall;
+	private Combo cmbVersions;
+	private String version;
 
 	public static void main(String[] args) {
 		if (args.length > 0) {
@@ -99,7 +106,6 @@ public class Installer {
 
 	private void fillProductsAndVersions(List<String> products) {
 		tableProducts.removeAll();
-		refreshButtons();
 		for (String productName : products) {
 			try {
 				List<String> versions = getDeployerEngine().listProductVersions(productName);
@@ -118,39 +124,51 @@ public class Installer {
 	}
 
 	private void refreshButtons() {
-		boolean disabled = tableProducts.getSelectionIndex() == -1;
-		btnInstall.setEnabled(!disabled);
-		btnUninstall.setEnabled(tableProducts.getSelectionIndex() != -1);
+		String installedVersion = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
+		btnInstall.setEnabled(true);
+		btnUninstall.setEnabled(true);
+		if (!installedVersion.isEmpty()) {
+			DefaultArtifactVersion instVersion = new DefaultArtifactVersion(installedVersion);
+			DefaultArtifactVersion latestVersion = new DefaultArtifactVersion(
+					tableProducts.getItem(tableProducts.getSelectionIndex()).getText(2));
+			if (instVersion.compareTo(latestVersion) >= 0) {
+				btnInstall.setEnabled(false);
+				btnUninstall.setEnabled(true);
+			}
+		} else {
+			btnInstall.setEnabled(true);
+			btnUninstall.setEnabled(false);
+		}
 	}
 
-	private void deploy() {
-		if (tableProducts.getSelectionIndex() == -1)
-			return;
-		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
-		String version = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
-
+	private void deploy(String productName, String version) {
 		try {
 			Common.copyJreIfNotExists();
 		} catch (RuntimeException e) {
 			Common.showError(shlInstaller, "jre doesn't present in one package back, please download"
 					+ "it somewhere!", e);
 		}
-		Common.deployWithProgress(shlInstaller, getDeployerEngine(), product, version);
+		Common.deployWithProgress(shlInstaller, getDeployerEngine(), productName, version);
 		getProducts();
 	}
 
-	private void undeploy() {
+	private void undeploy(String productName) {
 		if (tableProducts.getSelectionIndex() == -1)
 			return;
-		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 
 		Progress progress = new Progress(shlInstaller, "Undeploying", () -> {
-			DeploymentResult result = getDeployerEngine().deploy(product, "");
+			DeploymentResult result = getDeployerEngine().deploy(productName, "");
 			if (result != DeploymentResult.OK)
 				System.err.println(result);
 		});
 		Common.checkError(progress, shlInstaller, "Error undeploying product");
 		getProducts();
+	}
+
+	private void centerWindow(Rectangle parent, Shell shellToCenter) {
+		Rectangle shellSize = shellToCenter.getBounds();
+		shellToCenter.setLocation((parent.width - shellSize.width) / 2 + parent.x,
+				(parent.height - shellSize.height) / 2 + parent.y);
 	}
 
 	/**
@@ -167,9 +185,7 @@ public class Installer {
 		shlInstaller.setLayout(new FormLayout());
 
 		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
-		Rectangle shellSize = shlInstaller.getBounds();
-		shlInstaller.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
-				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
+		centerWindow(monitorBounds, shlInstaller);
 
 		SashForm sashForm = new SashForm(shlInstaller, SWT.VERTICAL);
 		FormData fd_sashForm = new FormData();
@@ -178,7 +194,7 @@ public class Installer {
 		fd_sashForm.left = new FormAttachment(0, 10);
 		sashForm.setLayoutData(fd_sashForm);
 
-		tableProducts = new Table(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
+		tableProducts = new Table(sashForm, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -200,6 +216,9 @@ public class Installer {
 		tblclmnDeployed.setWidth(100);
 		tblclmnDeployed.setText("Latest");
 
+		tableProducts.setSize(tableProducts.computeSize(SWT.DEFAULT, 200));
+		tableProducts.pack();
+
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
 		fd_sashForm.right = new FormAttachment(compositeButtons, -10);
 		compositeButtons.setLayout(new FormLayout());
@@ -214,7 +233,71 @@ public class Installer {
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				deploy();
+				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
+				shlDeployment = new Shell(shlInstaller);
+				shlDeployment.setText("Installation");
+				shlDeployment.setSize(400, 200);
+				centerWindow(shlInstaller.getBounds(), shlDeployment);
+				shlDeployment.setLayout(new FormLayout());
+
+				Label lblInstalledVersion = new Label(shlDeployment, SWT.NONE);
+				lblInstalledVersion.setText("Installed version: ");
+				FormData fd_lblInstalledVersion = new FormData();
+				fd_lblInstalledVersion.top = new FormAttachment(0, 10);
+				fd_lblInstalledVersion.left = new FormAttachment(0, 10);
+				lblInstalledVersion.setLayoutData(fd_lblInstalledVersion);
+
+				Label lblVersion = new Label(shlDeployment, SWT.NONE);
+				FormData fd_txtInstalledVersion = new FormData();
+				fd_txtInstalledVersion.top = new FormAttachment(0, 10);
+				fd_txtInstalledVersion.left = new FormAttachment(lblInstalledVersion, 15);
+				fd_txtInstalledVersion.right = new FormAttachment(100, -10);
+				lblVersion.setLayoutData(fd_txtInstalledVersion);
+				lblVersion.setText("XXX.X");
+
+				Label lblSelect = new Label(shlDeployment, SWT.NONE);
+				lblSelect.setText("Select version:");
+				FormData fd_lblSelect = new FormData();
+				fd_lblSelect.top = new FormAttachment(lblInstalledVersion, 6);
+				fd_lblSelect.left = new FormAttachment(0, 10);
+				lblSelect.setLayoutData(fd_lblSelect);
+
+				// Create a dropdown Combo
+				cmbVersions = new Combo(shlDeployment, SWT.DROP_DOWN | SWT.READ_ONLY);
+				FormData fd_cmbVersions = new FormData();
+				fd_cmbVersions.top = new FormAttachment(lblInstalledVersion, 6);
+				fd_cmbVersions.left = new FormAttachment(lblInstalledVersion, 15);
+				fd_cmbVersions.right = new FormAttachment(100, -10);
+				cmbVersions.setLayoutData(fd_cmbVersions);
+				List<String> versions = getDeployerEngine().listProductVersions(productName).stream()
+						.sorted(Comparator.reverseOrder())
+						.collect(Collectors.toList());
+				String[] items = versions.toArray(new String[]{});
+				version = versions.get(0);
+				cmbVersions.setItems(items);
+				cmbVersions.select(0);
+				cmbVersions.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+						int versionIndex = cmbVersions.getSelectionIndex();
+						version = cmbVersions.getItem(versionIndex);
+					}
+				});
+
+				Button btnInstallFromCombo = new Button(shlDeployment, SWT.PUSH);
+				btnInstallFromCombo.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+						createMessageBox(Action.DEPLOY, productName, version);
+					}
+				});
+				FormData fd_btnLscDefaultUrl = new FormData();
+				fd_btnLscDefaultUrl.width = 80;
+				fd_btnLscDefaultUrl.bottom = new FormAttachment(100, -10);
+				fd_btnLscDefaultUrl.right = new FormAttachment(cmbVersions, 0, SWT.RIGHT);
+				btnInstallFromCombo.setLayoutData(fd_btnLscDefaultUrl);
+				btnInstallFromCombo.setText("Install");
+				shlDeployment.open();
 			}
 		});
 		FormData fd_btnInstall = new FormData();
@@ -228,23 +311,8 @@ public class Installer {
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				Shell messageShell = new Shell(shlInstaller);
-				int style = SWT.YES | SWT.NO | SWT.ICON_QUESTION;
-				MessageBox mb = new MessageBox(messageShell, style);
-				mb.setText("Confirmation");
-				mb.setMessage("Do you really want to undeploy " + tableProducts
-						.getItem(tableProducts.getSelectionIndex()).getText(0));
-				int val = mb.open();
-				switch (val) {
-				case SWT.YES:
-					undeploy();
-					break;
-				case SWT.NO:
-					messageShell.close();
-					break;
-				default:
-					messageShell.close();
-				}
+				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
+				createMessageBox(Action.UNDEPLOY, productName, null);
 			}
 		});
 		btnUninstall.setText("Uninstall");
@@ -253,6 +321,33 @@ public class Installer {
 		fd_btnUninstall.left = new FormAttachment(0);
 		fd_btnUninstall.right = new FormAttachment(0, 100);
 		btnUninstall.setLayoutData(fd_btnUninstall);
-
 	}
+
+	private void createMessageBox(Action actionName, String productName, String version) {
+		Shell messageShell = new Shell(shlInstaller);
+		int style = SWT.YES | SWT.NO | SWT.ICON_QUESTION;
+		MessageBox mb = new MessageBox(messageShell, style);
+		mb.setText("Confirmation");
+		String message = actionName == Action.DEPLOY ? "deploy " + productName + "-" + version :
+				" undeploy " + productName;
+		mb.setMessage("Do you really want to " + message);
+		int val = mb.open();
+		switch (val) {
+		case SWT.YES:
+			if (actionName == Action.DEPLOY) {
+				deploy(productName, version);
+				shlDeployment.close();
+			} else {
+				undeploy(productName);
+			}
+			break;
+		case SWT.NO:
+			messageShell.close();
+			break;
+		default:
+			messageShell.close();
+		}
+	}
+
+	enum Action {DEPLOY, UNDEPLOY}
 }
