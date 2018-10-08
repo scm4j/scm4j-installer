@@ -13,6 +13,7 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -227,7 +228,23 @@ public class Installer {
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				undeploy();
+				Shell messageShell = new Shell(shlInstaller);
+				int style = SWT.YES | SWT.NO | SWT.ICON_QUESTION;
+				MessageBox mb = new MessageBox(messageShell, style);
+				mb.setText("Confirmation");
+				mb.setMessage("Do you really want to undeploy " + tableProducts
+						.getItem(tableProducts.getSelectionIndex()).getText(0));
+				int val = mb.open();
+				switch (val) {
+				case SWT.YES:
+					undeploy();
+					break;
+				case SWT.NO:
+					messageShell.close();
+					break;
+				default:
+					messageShell.close();
+				}
 			}
 		});
 		btnUninstall.setText("Uninstall");
