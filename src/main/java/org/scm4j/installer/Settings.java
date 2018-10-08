@@ -9,6 +9,7 @@ public final class Settings {
 	public static final String PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
 	public static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
 	private static String productName = "scm4j-installer";
+	private static String iconFilePath;
 
 	private Settings() {
 	}
@@ -19,6 +20,14 @@ public final class Settings {
 
 	public static String getProductName() {
 		return productName;
+	}
+
+	public static String getIconFilePath() {
+		return iconFilePath;
+	}
+
+	public static void setIconFilePath(String iconFilePath) {
+		Settings.iconFilePath = iconFilePath;
 	}
 
 	private static File getRunningFolder() {

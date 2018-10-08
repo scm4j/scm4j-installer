@@ -1,10 +1,11 @@
 package org.scm4j.installer;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.BusyIndicator;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
@@ -20,9 +21,10 @@ import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
 import java.beans.Beans;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 public class Installer {
 
@@ -30,9 +32,6 @@ public class Installer {
 
 	protected Shell shlInstaller;
 	private Table tableProducts;
-	private Table tableVersions;
-	private Button btnRefresh;
-	private Button btnDownload;
 	private Button btnInstall;
 	private Button btnUninstall;
 
@@ -71,7 +70,11 @@ public class Installer {
 		Wait wait = new Wait(shlInstaller);
 		wait.open();
 		try {
-			getProducts();
+			List<String> productNames = getDeployerEngine().refreshProducts();
+			fillProductsAndVersions(productNames);
+			for (String product : productNames) {
+				getDeployerEngine().refreshProductVersions(product);
+			}
 		} finally {
 			wait.close();
 		}
@@ -87,106 +90,43 @@ public class Installer {
 
 	private void getProducts() {
 		try {
-			fillProducts(getDeployerEngine().listProducts());
+			fillProductsAndVersions(getDeployerEngine().listProducts());
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting product list", e);
 		}
-		refreshVersions(false, false);
 	}
 
-	private void fillProducts(List<String> products) {
-		String selectedProduct = null;
-		if (tableProducts.getSelectionIndex() != -1)
-			selectedProduct = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+	private void fillProductsAndVersions(List<String> products) {
 		tableProducts.removeAll();
-		for (String productName : products) {
-			TableItem item = new TableItem(tableProducts, SWT.NONE);
-			item.setText(productName);
-			if (selectedProduct != null && selectedProduct.equals(productName))
-				tableProducts.setSelection(item);
-		}
-	}
-
-	private void fillVersions(Map<String, Boolean> versions, Map<String, Boolean> deployedVersion, boolean refresh,
-	                          boolean isSnapshotEnabled) {
-		String selectedVersion = null;
-		if (refresh && tableVersions.getSelectionIndex() != -1)
-			selectedVersion = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
-		tableVersions.removeAll();
-		Set<String> versionsSet = versions.keySet();
-		if (!isSnapshotEnabled)
-			versionsSet.removeIf(s -> s.contains("SNAPSHOT"));
-		for (String version : versionsSet) {
-			TableItem item = new TableItem(tableVersions, SWT.NONE);
-			item.setText(version);
-			item.setText(1, versions.get(version) ? "yes" : "no");
-			item.setText(2, deployedVersion.getOrDefault(version, false) ? "yes" : "no");
-			if (selectedVersion != null && selectedVersion.equals(version))
-				tableVersions.setSelection(item);
-		}
-		if (tableVersions.getSelectionIndex() == -1 && tableVersions.getItemCount() > 0)
-			tableVersions.setSelection(tableVersions.getItemCount() - 1);
-	}
-
-	private void refresh(boolean isSnapshotEnabled) {
-		BusyIndicator.showWhile(null, () -> {
-			try {
-				List<String> products = getDeployerEngine().refreshProducts();
-				fillProducts(products);
-				refreshVersions(true, isSnapshotEnabled);
-			} catch (Exception e) {
-				Common.showError(shlInstaller, "Error refreshing product list", e);
-			}
-		});
-	}
-
-	private void refreshVersions(boolean refresh, boolean isSnapshotEnabled) {
-		try {
-			if (tableProducts.getSelectionIndex() != -1) {
-				TableItem item = tableProducts.getItem(tableProducts.getSelectionIndex());
-				String product = item.getText();
-				Map<String, Boolean> versions = refresh ? getDeployerEngine().refreshProductVersions(product)
-						: getDeployerEngine().listProductVersions(product);
-				Map<String, Boolean> deployedVersion = getDeployerEngine().listDeployedProducts(product);
-				fillVersions(versions, deployedVersion, refresh, isSnapshotEnabled);
-			} else {
-				tableVersions.clearAll();
-			}
-		} catch (Exception e) {
-			Common.showError(shlInstaller, "Error getting product versions", e);
-		}
 		refreshButtons();
+		for (String productName : products) {
+			try {
+				List<String> versions = getDeployerEngine().listProductVersions(productName);
+				Map<String, String> deployedVersion = getDeployerEngine().mapDeployedProducts(productName);
+				TableItem item = new TableItem(tableProducts, SWT.NONE);
+				Optional<String> latestVersion = versions.stream()
+						.filter(s -> !s.contains("-SNAPSHOT"))
+						.max(Comparator.naturalOrder());
+				item.setText(0, productName);
+				item.setText(1, deployedVersion.getOrDefault(productName, "Not installed"));
+				item.setText(2, latestVersion.orElse(""));
+			} catch (Exception e) {
+				Common.showError(shlInstaller, "Error getting product versions", e);
+			}
+		}
 	}
 
 	private void refreshButtons() {
-		boolean disabled = tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1;
-		btnDownload.setEnabled(!disabled);
+		boolean disabled = tableProducts.getSelectionIndex() == -1;
 		btnInstall.setEnabled(!disabled);
 		btnUninstall.setEnabled(tableProducts.getSelectionIndex() != -1);
 	}
 
-	private void download() {
-		if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
-			return;
-		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
-		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
-
-		Progress progress = new Progress(shlInstaller, "Downloading", () -> getDeployerEngine().download(product,
-				version));
-		Object result = progress.open();
-		if (result != null) {
-			if (result instanceof Throwable)
-				Common.showError(shlInstaller, "Error downloading product", (Throwable) result);
-			// TODO else ?
-		}
-		getProducts();
-	}
-
 	private void deploy() {
-		if (tableProducts.getSelectionIndex() == -1 || tableVersions.getSelectionIndex() == -1)
+		if (tableProducts.getSelectionIndex() == -1)
 			return;
-		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
-		String version = tableVersions.getItem(tableVersions.getSelectionIndex()).getText();
+		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
+		String version = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
 
 		try {
 			Common.copyJreIfNotExists();
@@ -201,7 +141,7 @@ public class Installer {
 	private void undeploy() {
 		if (tableProducts.getSelectionIndex() == -1)
 			return;
-		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText();
+		String product = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 
 		Progress progress = new Progress(shlInstaller, "Undeploying", () -> {
 			DeploymentResult result = getDeployerEngine().deploy(product, "");
@@ -216,9 +156,13 @@ public class Installer {
 	 * Create contents of the window.
 	 */
 	protected void createContents(Display display) {
+		String iconFilePath = Settings.getIconFilePath();
 		shlInstaller = new Shell(display);
-		shlInstaller.setSize(450, 300);
-		shlInstaller.setText("Installer");
+		if (iconFilePath != null) {
+			shlInstaller.setImage(new Image(display, iconFilePath));
+		}
+		shlInstaller.setSize(800, 600);
+		shlInstaller.setText(StringUtils.capitalize(Settings.getProductName()));
 		shlInstaller.setLayout(new FormLayout());
 
 		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
@@ -237,7 +181,7 @@ public class Installer {
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				refreshVersions(false, false);
+				refreshButtons();
 			}
 		});
 		tableProducts.setHeaderVisible(true);
@@ -247,23 +191,13 @@ public class Installer {
 		tblclmnProductName.setWidth(300);
 		tblclmnProductName.setText("Product name");
 
-		tableVersions = new Table(sashForm, SWT.BORDER | SWT.FULL_SELECTION);
-		tableVersions.setHeaderVisible(true);
-		tableVersions.setLinesVisible(true);
-
-		TableColumn tblclmnVersion = new TableColumn(tableVersions, SWT.NONE);
-		tblclmnVersion.setWidth(100);
-		tblclmnVersion.setText("Version");
-
-		TableColumn tblclmnDownloaded = new TableColumn(tableVersions, SWT.NONE);
+		TableColumn tblclmnDownloaded = new TableColumn(tableProducts, SWT.NONE);
 		tblclmnDownloaded.setWidth(100);
-		tblclmnDownloaded.setText("Downloaded");
-		sashForm.setWeights(new int[]{1, 1});
+		tblclmnDownloaded.setText("Installed");
 
-		TableColumn tblclmnDeployed = new TableColumn(tableVersions, SWT.NONE);
+		TableColumn tblclmnDeployed = new TableColumn(tableProducts, SWT.NONE);
 		tblclmnDeployed.setWidth(100);
-		tblclmnDeployed.setText("Installed");
-		sashForm.setWeights(new int[]{1, 1});
+		tblclmnDeployed.setText("Latest");
 
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
 		fd_sashForm.right = new FormAttachment(compositeButtons, -10);
@@ -275,37 +209,6 @@ public class Installer {
 		fd_compositeButtons.right = new FormAttachment(100, -10);
 		compositeButtons.setLayoutData(fd_compositeButtons);
 
-		btnRefresh = new Button(compositeButtons, SWT.NONE);
-		btnRefresh.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				if ((e.stateMask & SWT.CTRL) != 0 && (e.stateMask & SWT.SHIFT) != 0)
-					refresh(true);
-				else
-					refresh(false);
-			}
-		});
-		FormData fd_btnRefresh = new FormData();
-		fd_btnRefresh.top = new FormAttachment(0);
-		fd_btnRefresh.left = new FormAttachment(0);
-		fd_btnRefresh.right = new FormAttachment(0, 100);
-		btnRefresh.setLayoutData(fd_btnRefresh);
-		btnRefresh.setText("Refresh");
-
-		btnDownload = new Button(compositeButtons, SWT.NONE);
-		btnDownload.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				download();
-			}
-		});
-		FormData fd_btnDownload = new FormData();
-		fd_btnDownload.top = new FormAttachment(btnRefresh, 6);
-		fd_btnDownload.left = new FormAttachment(0);
-		fd_btnDownload.right = new FormAttachment(0, 100);
-		btnDownload.setLayoutData(fd_btnDownload);
-		btnDownload.setText("Download");
-
 		btnInstall = new Button(compositeButtons, SWT.NONE);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -314,7 +217,7 @@ public class Installer {
 			}
 		});
 		FormData fd_btnInstall = new FormData();
-		fd_btnInstall.top = new FormAttachment(btnDownload, 6);
+		fd_btnInstall.top = new FormAttachment(0);
 		fd_btnInstall.left = new FormAttachment(0);
 		fd_btnInstall.right = new FormAttachment(0, 100);
 		btnInstall.setLayoutData(fd_btnInstall);
