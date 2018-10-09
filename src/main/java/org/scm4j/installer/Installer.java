@@ -4,9 +4,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
@@ -14,6 +19,7 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
@@ -35,6 +41,7 @@ public class Installer {
 
 	private DeployerEngine deployerEngine;
 
+	private Display display;
 	protected Shell shlInstaller;
 	private Shell shlDeployment;
 	private Table tableProducts;
@@ -42,6 +49,7 @@ public class Installer {
 	private Button btnUninstall;
 	private Combo cmbVersions;
 	private String version;
+	private String installedVersion;
 
 	public static void main(String[] args) {
 		if (args.length > 0) {
@@ -60,8 +68,8 @@ public class Installer {
 	 * Open the window.
 	 */
 	public void open() {
-		Display display = new Display();
-		createContents(display);
+		display = new Display();
+		createContents();
 		if (!Beans.isDesignTime()) {
 			init();
 		}
@@ -124,7 +132,8 @@ public class Installer {
 	}
 
 	private void refreshButtons() {
-		String installedVersion = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
+		String rawVersion = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
+		installedVersion = rawVersion.isEmpty() ? "Not installed" : rawVersion;
 		btnInstall.setEnabled(true);
 		btnUninstall.setEnabled(true);
 		if (!installedVersion.isEmpty()) {
@@ -153,9 +162,6 @@ public class Installer {
 	}
 
 	private void undeploy(String productName) {
-		if (tableProducts.getSelectionIndex() == -1)
-			return;
-
 		Progress progress = new Progress(shlInstaller, "Undeploying", () -> {
 			DeploymentResult result = getDeployerEngine().deploy(productName, "");
 			if (result != DeploymentResult.OK)
@@ -171,16 +177,26 @@ public class Installer {
 				(parent.height - shellSize.height) / 2 + parent.y);
 	}
 
+	private void resizeFonts(Control ctrl, int size) {
+		FontData[] fDates = ctrl.getFont().getFontData();
+		for (FontData fData : fDates)
+			fData.setHeight(size);
+
+		Font newFont = new Font(display, fDates);
+		ctrl.setFont(newFont);
+	}
+
 	/**
 	 * Create contents of the window.
 	 */
-	protected void createContents(Display display) {
+	protected void createContents() {
 		String iconFilePath = Settings.getIconFilePath();
 		shlInstaller = new Shell(display);
 		if (iconFilePath != null) {
 			shlInstaller.setImage(new Image(display, iconFilePath));
 		}
 		shlInstaller.setSize(800, 600);
+		shlInstaller.setMinimumSize(600, 450);
 		shlInstaller.setText(StringUtils.capitalize(Settings.getProductName()));
 		shlInstaller.setLayout(new FormLayout());
 
@@ -203,21 +219,43 @@ public class Installer {
 		});
 		tableProducts.setHeaderVisible(true);
 		tableProducts.setLinesVisible(true);
+		resizeFonts(tableProducts, 14);
 
 		TableColumn tblclmnProductName = new TableColumn(tableProducts, SWT.NONE);
 		tblclmnProductName.setWidth(300);
 		tblclmnProductName.setText("Product name");
 
-		TableColumn tblclmnDownloaded = new TableColumn(tableProducts, SWT.NONE);
-		tblclmnDownloaded.setWidth(100);
-		tblclmnDownloaded.setText("Installed");
+		TableColumn tblclmnInstalled = new TableColumn(tableProducts, SWT.NONE);
+		tblclmnInstalled.setWidth(150);
+		tblclmnInstalled.setText("Installed");
 
-		TableColumn tblclmnDeployed = new TableColumn(tableProducts, SWT.NONE);
-		tblclmnDeployed.setWidth(100);
-		tblclmnDeployed.setText("Latest");
+		TableColumn tblclmnLatest = new TableColumn(tableProducts, SWT.NONE);
+		tblclmnLatest.setWidth(150);
+		tblclmnLatest.setText("Latest");
 
-		tableProducts.setSize(tableProducts.computeSize(SWT.DEFAULT, 200));
-		tableProducts.pack();
+		sashForm.addControlListener(new ControlAdapter() {
+			public void controlResized(ControlEvent e) {
+				Rectangle area = sashForm.getClientArea();
+				Point preferredSize = tableProducts.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+				int width = area.width - 2 * tableProducts.getBorderWidth();
+				if (preferredSize.y > area.height + tableProducts.getHeaderHeight()) {
+					Point vBarSize = tableProducts.getVerticalBar().getSize();
+					width -= vBarSize.x;
+				}
+				Point oldSize = tableProducts.getSize();
+				if (oldSize.x > area.width) {
+					tblclmnProductName.setWidth(width / 3);
+					tblclmnInstalled.setWidth(width / 3);
+					tblclmnLatest.setWidth(width / 3);
+					tableProducts.setSize(area.width, area.height);
+				} else {
+					tableProducts.setSize(area.width, area.height);
+					tblclmnProductName.setWidth(width / 3);
+					tblclmnInstalled.setWidth(width / 3);
+					tblclmnLatest.setWidth(width / 3);
+				}
+			}
+		});
 
 		Composite compositeButtons = new Composite(shlInstaller, SWT.NONE);
 		fd_sashForm.right = new FormAttachment(compositeButtons, -10);
@@ -230,9 +268,12 @@ public class Installer {
 		compositeButtons.setLayoutData(fd_compositeButtons);
 
 		btnInstall = new Button(compositeButtons, SWT.NONE);
+		resizeFonts(btnInstall, 12);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (tableProducts.getSelectionIndex() == -1)
+					return;
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				shlDeployment = new Shell(shlInstaller);
 				shlDeployment.setText("Installation");
@@ -241,21 +282,24 @@ public class Installer {
 				shlDeployment.setLayout(new FormLayout());
 
 				Label lblInstalledVersion = new Label(shlDeployment, SWT.NONE);
-				lblInstalledVersion.setText("Installed version: ");
+				resizeFonts(lblInstalledVersion, 12);
+				lblInstalledVersion.setText("Installed version:");
 				FormData fd_lblInstalledVersion = new FormData();
 				fd_lblInstalledVersion.top = new FormAttachment(0, 10);
 				fd_lblInstalledVersion.left = new FormAttachment(0, 10);
 				lblInstalledVersion.setLayoutData(fd_lblInstalledVersion);
 
 				Label lblVersion = new Label(shlDeployment, SWT.NONE);
+				resizeFonts(lblVersion, 12);
 				FormData fd_txtInstalledVersion = new FormData();
 				fd_txtInstalledVersion.top = new FormAttachment(0, 10);
 				fd_txtInstalledVersion.left = new FormAttachment(lblInstalledVersion, 15);
 				fd_txtInstalledVersion.right = new FormAttachment(100, -10);
 				lblVersion.setLayoutData(fd_txtInstalledVersion);
-				lblVersion.setText("XXX.X");
+				lblVersion.setText(installedVersion);
 
 				Label lblSelect = new Label(shlDeployment, SWT.NONE);
+				resizeFonts(lblSelect, 12);
 				lblSelect.setText("Select version:");
 				FormData fd_lblSelect = new FormData();
 				fd_lblSelect.top = new FormAttachment(lblInstalledVersion, 6);
@@ -264,9 +308,10 @@ public class Installer {
 
 				// Create a dropdown Combo
 				cmbVersions = new Combo(shlDeployment, SWT.DROP_DOWN | SWT.READ_ONLY);
+				resizeFonts(cmbVersions, 12);
 				FormData fd_cmbVersions = new FormData();
-				fd_cmbVersions.top = new FormAttachment(lblInstalledVersion, 6);
-				fd_cmbVersions.left = new FormAttachment(lblInstalledVersion, 15);
+				fd_cmbVersions.top = new FormAttachment(lblInstalledVersion, 4);
+				fd_cmbVersions.left = new FormAttachment(lblInstalledVersion, 13);
 				fd_cmbVersions.right = new FormAttachment(100, -10);
 				cmbVersions.setLayoutData(fd_cmbVersions);
 				List<String> versions = getDeployerEngine().listProductVersions(productName).stream()
@@ -285,6 +330,7 @@ public class Installer {
 				});
 
 				Button btnInstallFromCombo = new Button(shlDeployment, SWT.PUSH);
+				resizeFonts(btnInstallFromCombo, 12);
 				btnInstallFromCombo.addSelectionListener(new SelectionAdapter() {
 					@Override
 					public void widgetSelected(SelectionEvent e) {
@@ -308,9 +354,12 @@ public class Installer {
 		btnInstall.setText("Install");
 
 		btnUninstall = new Button(compositeButtons, SWT.NONE);
+		resizeFonts(btnUninstall, 12);
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (tableProducts.getSelectionIndex() == -1)
+					return;
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				createMessageBox(Action.UNDEPLOY, productName, null);
 			}
