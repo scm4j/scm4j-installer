@@ -8,8 +8,6 @@ import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -19,7 +17,6 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
@@ -39,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class Installer {
 
-	private DeployerEngine deployerEngine;
+	protected DeployerEngine deployerEngine;
 
 	private Display display;
 	protected Shell shlInstaller;
@@ -47,6 +44,7 @@ public class Installer {
 	private Table tableProducts;
 	private Button btnInstall;
 	private Button btnUninstall;
+	private Button btnInstallFromCombo;
 	private Combo cmbVersions;
 	private String version;
 	private String installedVersion;
@@ -91,6 +89,8 @@ public class Installer {
 			for (String product : productNames) {
 				getDeployerEngine().refreshProductVersions(product);
 			}
+		} catch (Exception e) {
+			Common.showError(shlInstaller, e.toString(), e);
 		} finally {
 			wait.close();
 		}
@@ -114,10 +114,10 @@ public class Installer {
 
 	private void fillProductsAndVersions(List<String> products) {
 		tableProducts.removeAll();
+		Map<String, String> deployedVersion = getDeployerEngine().mapDeployedProducts();
 		for (String productName : products) {
 			try {
 				List<String> versions = getDeployerEngine().listProductVersions(productName);
-				Map<String, String> deployedVersion = getDeployerEngine().mapDeployedProducts(productName);
 				TableItem item = new TableItem(tableProducts, SWT.NONE);
 				Optional<String> latestVersion = versions.stream()
 						.filter(s -> !s.contains("-SNAPSHOT"))
@@ -137,10 +137,8 @@ public class Installer {
 		btnInstall.setEnabled(true);
 		btnUninstall.setEnabled(true);
 		if (!installedVersion.isEmpty()) {
-			DefaultArtifactVersion instVersion = new DefaultArtifactVersion(installedVersion);
-			DefaultArtifactVersion latestVersion = new DefaultArtifactVersion(
-					tableProducts.getItem(tableProducts.getSelectionIndex()).getText(2));
-			if (instVersion.compareTo(latestVersion) >= 0) {
+			if (compareTwoVersions(installedVersion, tableProducts.getItem(tableProducts.getSelectionIndex())
+					.getText(2)) >= 0) {
 				btnInstall.setEnabled(false);
 				btnUninstall.setEnabled(true);
 			}
@@ -148,6 +146,12 @@ public class Installer {
 			btnInstall.setEnabled(true);
 			btnUninstall.setEnabled(false);
 		}
+	}
+
+	private int compareTwoVersions(String version1, String version2) {
+		DefaultArtifactVersion vers1 = new DefaultArtifactVersion(version1);
+		DefaultArtifactVersion vers2 = new DefaultArtifactVersion(version2);
+		return vers1.compareTo(vers2);
 	}
 
 	private void deploy(String productName, String version) {
@@ -175,15 +179,6 @@ public class Installer {
 		Rectangle shellSize = shellToCenter.getBounds();
 		shellToCenter.setLocation((parent.width - shellSize.width) / 2 + parent.x,
 				(parent.height - shellSize.height) / 2 + parent.y);
-	}
-
-	private void resizeFonts(Control ctrl, int size) {
-		FontData[] fDates = ctrl.getFont().getFontData();
-		for (FontData fData : fDates)
-			fData.setHeight(size);
-
-		Font newFont = new Font(display, fDates);
-		ctrl.setFont(newFont);
 	}
 
 	/**
@@ -219,7 +214,7 @@ public class Installer {
 		});
 		tableProducts.setHeaderVisible(true);
 		tableProducts.setLinesVisible(true);
-		resizeFonts(tableProducts, 14);
+		Common.resizeFonts(display, tableProducts, 14);
 
 		TableColumn tblclmnProductName = new TableColumn(tableProducts, SWT.NONE);
 		tblclmnProductName.setWidth(300);
@@ -268,7 +263,7 @@ public class Installer {
 		compositeButtons.setLayoutData(fd_compositeButtons);
 
 		btnInstall = new Button(compositeButtons, SWT.NONE);
-		resizeFonts(btnInstall, 12);
+		Common.resizeFonts(display, btnInstall, 12);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -282,7 +277,7 @@ public class Installer {
 				shlDeployment.setLayout(new FormLayout());
 
 				Label lblInstalledVersion = new Label(shlDeployment, SWT.NONE);
-				resizeFonts(lblInstalledVersion, 12);
+				Common.resizeFonts(display, lblInstalledVersion, 12);
 				lblInstalledVersion.setText("Installed version:");
 				FormData fd_lblInstalledVersion = new FormData();
 				fd_lblInstalledVersion.top = new FormAttachment(0, 10);
@@ -290,7 +285,7 @@ public class Installer {
 				lblInstalledVersion.setLayoutData(fd_lblInstalledVersion);
 
 				Label lblVersion = new Label(shlDeployment, SWT.NONE);
-				resizeFonts(lblVersion, 12);
+				Common.resizeFonts(display, lblVersion, 12);
 				FormData fd_txtInstalledVersion = new FormData();
 				fd_txtInstalledVersion.top = new FormAttachment(0, 10);
 				fd_txtInstalledVersion.left = new FormAttachment(lblInstalledVersion, 15);
@@ -299,7 +294,7 @@ public class Installer {
 				lblVersion.setText(installedVersion);
 
 				Label lblSelect = new Label(shlDeployment, SWT.NONE);
-				resizeFonts(lblSelect, 12);
+				Common.resizeFonts(display, lblSelect, 12);
 				lblSelect.setText("Select version:");
 				FormData fd_lblSelect = new FormData();
 				fd_lblSelect.top = new FormAttachment(lblInstalledVersion, 6);
@@ -308,7 +303,7 @@ public class Installer {
 
 				// Create a dropdown Combo
 				cmbVersions = new Combo(shlDeployment, SWT.DROP_DOWN | SWT.READ_ONLY);
-				resizeFonts(cmbVersions, 12);
+				Common.resizeFonts(display, cmbVersions, 12);
 				FormData fd_cmbVersions = new FormData();
 				fd_cmbVersions.top = new FormAttachment(lblInstalledVersion, 4);
 				fd_cmbVersions.left = new FormAttachment(lblInstalledVersion, 13);
@@ -326,11 +321,17 @@ public class Installer {
 					public void widgetSelected(SelectionEvent e) {
 						int versionIndex = cmbVersions.getSelectionIndex();
 						version = cmbVersions.getItem(versionIndex);
+						btnInstallFromCombo.setEnabled(true);
+						if (!installedVersion.isEmpty()) {
+							if (compareTwoVersions(installedVersion, version) >= 0) {
+								btnInstallFromCombo.setEnabled(false);
+							}
+						}
 					}
 				});
 
-				Button btnInstallFromCombo = new Button(shlDeployment, SWT.PUSH);
-				resizeFonts(btnInstallFromCombo, 12);
+				btnInstallFromCombo = new Button(shlDeployment, SWT.PUSH);
+				Common.resizeFonts(display, btnInstallFromCombo, 12);
 				btnInstallFromCombo.addSelectionListener(new SelectionAdapter() {
 					@Override
 					public void widgetSelected(SelectionEvent e) {
@@ -343,6 +344,7 @@ public class Installer {
 				fd_btnLscDefaultUrl.right = new FormAttachment(cmbVersions, 0, SWT.RIGHT);
 				btnInstallFromCombo.setLayoutData(fd_btnLscDefaultUrl);
 				btnInstallFromCombo.setText("Install");
+
 				shlDeployment.open();
 			}
 		});
@@ -354,7 +356,7 @@ public class Installer {
 		btnInstall.setText("Install");
 
 		btnUninstall = new Button(compositeButtons, SWT.NONE);
-		resizeFonts(btnUninstall, 12);
+		Common.resizeFonts(display, btnUninstall, 12);
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {

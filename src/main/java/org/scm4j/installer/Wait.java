@@ -38,15 +38,15 @@ public class Wait extends Dialog {
 	 */
 	private void createContents() {
 		shell = new Shell(getParent(), SWT.BORDER);
-		shell.setSize(450, 67);
+		shell.setSize(450, 70);
 		shell.setText(getText());
 		
 		Label lblTitle = new Label(shell, SWT.NONE);
-		lblTitle.setBounds(10, 10, 424, 15);
+		lblTitle.setBounds(10, 12, 424, 22);
 		lblTitle.setText("Loading...");
-		
-		ProgressBar progressBar = new ProgressBar(shell, SWT.INDETERMINATE);
-		progressBar.setBounds(10, 31, 424, 17);
+		Common.resizeFonts(getParent().getDisplay(), lblTitle, 12);
 
+		ProgressBar progressBar = new ProgressBar(shell, SWT.INDETERMINATE);
+		progressBar.setBounds(10, 35, 424, 20);
 	}
 }

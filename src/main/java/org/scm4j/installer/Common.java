@@ -3,7 +3,10 @@ package org.scm4j.installer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
@@ -154,5 +157,14 @@ public final class Common {
 				throw new RuntimeException(e);
 			}
 		}
+	}
+
+	public static void resizeFonts(Display display, Control ctrl, int size) {
+		FontData[] fDates = ctrl.getFont().getFontData();
+		for (FontData fData : fDates)
+			fData.setHeight(size);
+
+		Font newFont = new Font(display, fDates);
+		ctrl.setFont(newFont);
 	}
 }
