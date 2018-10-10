@@ -28,6 +28,7 @@ import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 
 import java.beans.Beans;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -185,7 +186,7 @@ public class Installer {
 	 * Create contents of the window.
 	 */
 	protected void createContents() {
-		String iconFilePath = Settings.getIconFilePath();
+		InputStream iconFilePath = Settings.getIconFileStream();
 		shlInstaller = new Shell(display);
 		if (iconFilePath != null) {
 			shlInstaller.setImage(new Image(display, iconFilePath));

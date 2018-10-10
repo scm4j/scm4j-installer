@@ -1,6 +1,7 @@
 package org.scm4j.installer;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 
 public final class Settings {
@@ -9,7 +10,7 @@ public final class Settings {
 	public static final String PRODUCT_LIST_URL = "https://dev.untill.com/artifactory/repo";
 	public static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
 	private static String productName = "scm4j-installer";
-	private static String iconFilePath;
+	private static InputStream iconFileStream;
 
 	private Settings() {
 	}
@@ -22,12 +23,12 @@ public final class Settings {
 		return productName;
 	}
 
-	public static String getIconFilePath() {
-		return iconFilePath;
+	public static InputStream getIconFileStream() {
+		return iconFileStream;
 	}
 
-	public static void setIconFilePath(String iconFilePath) {
-		Settings.iconFilePath = iconFilePath;
+	public static void setIconFileStream(InputStream iconFileStream) {
+		Settings.iconFileStream = iconFileStream;
 	}
 
 	private static File getRunningFolder() {
