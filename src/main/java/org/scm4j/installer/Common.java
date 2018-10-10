@@ -44,6 +44,13 @@ public final class Common {
 		messageBox.open();
 	}
 
+	public static void showInfo(Shell shell, String message) {
+		MessageBox messageBox = new MessageBox(shell, SWT.ICON_INFORMATION | SWT.OK);
+		messageBox.setText(shell.getText());
+		messageBox.setMessage(message);
+		messageBox.open();
+	}
+
 	public static void downloadWithProgress(Shell shell, DeployerEngine deployerEngine, String product, String version) {
 		Progress progress = new Progress(shell, "Downloading", () ->
 				deployerEngine.download(product, version));

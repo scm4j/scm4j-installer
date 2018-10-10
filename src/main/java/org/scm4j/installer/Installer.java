@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class Installer {
 
-	protected DeployerEngine deployerEngine;
+	private DeployerEngine deployerEngine;
 
 	private Display display;
 	protected Shell shlInstaller;
@@ -82,7 +82,7 @@ public class Installer {
 
 	private void init() {
 		Wait wait = new Wait(shlInstaller);
-		wait.open();
+		wait.open("Loading...");
 		try {
 			List<String> productNames = getDeployerEngine().refreshProducts();
 			fillProductsAndVersions(productNames);
@@ -96,7 +96,7 @@ public class Installer {
 		}
 	}
 
-	private DeployerEngine getDeployerEngine() {
+	protected DeployerEngine getDeployerEngine() {
 		if (deployerEngine == null) {
 			deployerEngine = new DeployerEngine(Settings.getPortableFolder(), Settings.getWorkingFolder(),
 					Settings.PRODUCT_LIST_URL);

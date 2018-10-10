@@ -21,9 +21,9 @@ public class Wait extends Dialog {
 			setText(parent.getText());
 	}
 
-	public void open() {
+	public void open(String message) {
 		Display display = getParent().getDisplay();
-		createContents();
+		createContents(message);
 		Common.centerWindow(display, shell);
 		shell.open();
 		shell.layout();
@@ -36,14 +36,14 @@ public class Wait extends Dialog {
 	/**
 	 * Create contents of the dialog.
 	 */
-	private void createContents() {
+	private void createContents(String message) {
 		shell = new Shell(getParent(), SWT.BORDER);
 		shell.setSize(450, 70);
 		shell.setText(getText());
 		
 		Label lblTitle = new Label(shell, SWT.NONE);
 		lblTitle.setBounds(10, 12, 424, 22);
-		lblTitle.setText("Loading...");
+		lblTitle.setText(message);
 		Common.resizeFonts(getParent().getDisplay(), lblTitle, 12);
 
 		ProgressBar progressBar = new ProgressBar(shell, SWT.INDETERMINATE);
