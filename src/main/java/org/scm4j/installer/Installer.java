@@ -68,6 +68,7 @@ public class Installer {
 	 */
 	public void open() {
 		display = new Display();
+		shlInstaller = new Shell(display);
 		createContents();
 		if (!Beans.isDesignTime()) {
 			init();
@@ -86,10 +87,10 @@ public class Installer {
 		wait.open("Loading...");
 		try {
 			List<String> productNames = getDeployerEngine().refreshProducts();
-			fillProductsAndVersions(productNames);
 			for (String product : productNames) {
 				getDeployerEngine().refreshProductVersions(product);
 			}
+			fillProductsAndVersions(productNames);
 		} catch (Exception e) {
 			Common.showError(shlInstaller, e.toString(), e);
 		} finally {
@@ -187,7 +188,6 @@ public class Installer {
 	 */
 	protected void createContents() {
 		InputStream iconFilePath = Settings.getIconFileStream();
-		shlInstaller = new Shell(display);
 		if (iconFilePath != null) {
 			shlInstaller.setImage(new Image(display, iconFilePath));
 		}
