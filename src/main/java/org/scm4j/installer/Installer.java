@@ -137,7 +137,7 @@ public class Installer {
 		installedVersion = rawVersion.isEmpty() ? "Not installed" : rawVersion;
 		btnInstall.setEnabled(true);
 		btnUninstall.setEnabled(true);
-		if (!installedVersion.isEmpty()) {
+		if (!installedVersion.equals("Not installed")) {
 			if (compareTwoVersions(installedVersion, tableProducts.getItem(tableProducts.getSelectionIndex())
 					.getText(2)) >= 0) {
 				btnInstall.setEnabled(false);
