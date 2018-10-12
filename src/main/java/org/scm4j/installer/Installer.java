@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
+import org.slf4j.Logger;
 
 import java.beans.Beans;
 import java.io.InputStream;
@@ -35,7 +36,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.scm4j.deployer.api.DeploymentResult.ALREADY_INSTALLED;
+import static org.scm4j.deployer.api.DeploymentResult.NEWER_VERSION_EXISTS;
+import static org.scm4j.deployer.api.DeploymentResult.OK;
+
 public class Installer {
+
+	private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(Installer.class);
 
 	private DeployerEngine deployerEngine;
 
@@ -49,6 +56,8 @@ public class Installer {
 	private Combo cmbVersions;
 	private String version;
 	private String installedVersion;
+	private String message;
+	private DeploymentResult result;
 
 	public static void main(String[] args) {
 		if (args.length > 0) {
@@ -116,16 +125,20 @@ public class Installer {
 
 	private void fillProductsAndVersions(List<String> products) {
 		tableProducts.removeAll();
-		Map<String, String> deployedVersion = getDeployerEngine().mapDeployedProducts();
+		Map<String, String> deployedProducts = getDeployerEngine().mapDeployedProducts();
 		for (String productName : products) {
 			try {
 				List<String> versions = getDeployerEngine().listProductVersions(productName);
+				String deployedVersion = deployedProducts.get(productName);
+				if (deployedVersion == null || deployedVersion.isEmpty()) {
+					deployedVersion = "Not installed";
+				}
 				TableItem item = new TableItem(tableProducts, SWT.NONE);
 				Optional<String> latestVersion = versions.stream()
 						.filter(s -> !s.contains("-SNAPSHOT"))
 						.max(Comparator.naturalOrder());
 				item.setText(0, productName);
-				item.setText(1, deployedVersion.getOrDefault(productName, "Not installed"));
+				item.setText(1, deployedVersion);
 				item.setText(2, latestVersion.orElse(""));
 			} catch (Exception e) {
 				Common.showError(shlInstaller, "Error getting product versions", e);
@@ -163,17 +176,69 @@ public class Installer {
 			Common.showError(shlInstaller, "jre doesn't present in one package back, please download"
 					+ "it somewhere!", e);
 		}
-		Common.deployWithProgress(shlInstaller, getDeployerEngine(), productName, version);
+		deployWithProgress(shlInstaller, getDeployerEngine(), productName, version);
 		getProducts();
 	}
 
-	private void undeploy(String productName) {
-		Progress progress = new Progress(shlInstaller, "Undeploying", () -> {
-			DeploymentResult result = getDeployerEngine().deploy(productName, "");
-			if (result != DeploymentResult.OK)
-				System.err.println(result);
+	void deployWithProgress(Shell shell, DeployerEngine engine, String product, String version) {
+		String productAndVersion = product + "-" + version;
+		Progress progress = new Progress(shell, "Installing " + productAndVersion, () -> {
+			result = engine.deploy(product, version);
+			switch (result) {
+			case ALREADY_INSTALLED:
+			case NEWER_VERSION_EXISTS:
+				message = productAndVersion + ' ' + result.toString();
+			case OK:
+				message = productAndVersion + " successfully installed!";
+				LOG.info(message);
+				break;
+			case NEED_REBOOT:
+				message = productAndVersion + " need reboot";
+				LOG.warn(message);
+				break;
+			case REBOOT_CONTINUE:
+				int exitcode = 0;
+				try {
+					exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version);
+				} catch (Exception e) {
+					message = e.toString() + "\n" + productAndVersion + " deploying failed!";
+					LOG.warn(message);
+				}
+				if (exitcode != 0) {
+					message = "Can't create task to exec after reboot, task FAILED";
+					LOG.warn(message);
+				} else {
+					message = "Installation will be successful after reboot";
+					LOG.warn(message);
+				}
+				break;
+			case FAILED:
+			case INCOMPATIBLE_API_VERSION:
+				message = productAndVersion + " deploying failed!";
+				LOG.warn(message);
+				break;
+			default:
+				throw new RuntimeException("Invalid result!");
+			}
 		});
-		Common.checkError(progress, shlInstaller, "Error undeploying product");
+		Common.checkError(progress, shell, "Error deploying product");
+		if (result == OK || result == NEWER_VERSION_EXISTS || result == ALREADY_INSTALLED) {
+			Common.showInfo(shell, message);
+		} else {
+			Common.showWarn(shell, message);
+		}
+	}
+
+	private void undeploy(String productName) {
+		Progress progress = new Progress(shlInstaller, "Uninstalling " + productName, () -> {
+			result = getDeployerEngine().deploy(productName, "");
+		});
+		Common.checkError(progress, shlInstaller, "Error uninstall product");
+		if (result != OK) {
+			Common.showWarn(shlInstaller, "Uninstall return status " + result);
+		} else {
+			Common.showInfo(shlInstaller, productName + " successfully uninstalled");
+		}
 		getProducts();
 	}
 
@@ -210,6 +275,8 @@ public class Installer {
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (tableProducts.getSelectionIndex() == -1)
+					return;
 				refreshButtons();
 			}
 		});
@@ -268,8 +335,6 @@ public class Installer {
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if (tableProducts.getSelectionIndex() == -1)
-					return;
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				shlDeployment = new Shell(shlInstaller);
 				shlDeployment.setText("Installation");
@@ -311,6 +376,7 @@ public class Installer {
 				fd_cmbVersions.right = new FormAttachment(100, -10);
 				cmbVersions.setLayoutData(fd_cmbVersions);
 				List<String> versions = getDeployerEngine().listProductVersions(productName).stream()
+						.filter(s -> !s.contains("-SNAPSHOT"))
 						.sorted(Comparator.reverseOrder())
 						.collect(Collectors.toList());
 				String[] items = versions.toArray(new String[]{});
@@ -361,8 +427,6 @@ public class Installer {
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if (tableProducts.getSelectionIndex() == -1)
-					return;
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				createMessageBox(Action.UNDEPLOY, productName, null);
 			}

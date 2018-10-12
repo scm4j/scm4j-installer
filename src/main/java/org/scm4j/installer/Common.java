@@ -10,7 +10,6 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
-import org.scm4j.deployer.api.DeploymentResult;
 import org.scm4j.deployer.engine.DeployerEngine;
 import org.slf4j.Logger;
 
@@ -45,7 +44,15 @@ public final class Common {
 	}
 
 	public static void showInfo(Shell shell, String message) {
-		MessageBox messageBox = new MessageBox(shell, SWT.ICON_INFORMATION | SWT.OK);
+		showMessage(shell, message, SWT.ICON_INFORMATION);
+	}
+
+	public static void showWarn(Shell shell, String message) {
+		showMessage(shell, message, SWT.ICON_WARNING);
+	}
+
+	public static void showMessage(Shell shell, String message, int swtStyle) {
+		MessageBox messageBox = new MessageBox(shell, swtStyle | SWT.OK);
 		messageBox.setText(shell.getText());
 		messageBox.setMessage(message);
 		messageBox.open();
@@ -55,42 +62,6 @@ public final class Common {
 		Progress progress = new Progress(shell, "Downloading", () ->
 				deployerEngine.download(product, version));
 		Common.checkError(progress, shell, "Error downloading product");
-	}
-
-	public static void deployWithProgress(Shell shell, DeployerEngine deployerEngine, String product, String version) {
-		Progress progress = new Progress(shell, "Deploying", () -> {
-			DeploymentResult result = deployerEngine.deploy(product, version);
-			String productAndVersion = product + "-" + version;
-			switch (result) {
-			case OK:
-			case ALREADY_INSTALLED:
-			case NEWER_VERSION_EXISTS:
-				LOG.info(productAndVersion + ' ' + result.toString());
-				break;
-			case NEED_REBOOT:
-				LOG.warn(productAndVersion + " need reboot");
-				break;
-			case REBOOT_CONTINUE:
-				int exitcode = 0;
-				try {
-					exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version);
-				} catch (Exception e) {
-					LOG.warn(e.toString() + "\n" + productAndVersion + " deploying failed!");
-				}
-				if (exitcode != 0)
-					LOG.warn("Can't create task to exec after reboot, task FAILED");
-				else
-					LOG.warn("Installation will be successful after reboot");
-				break;
-			case FAILED:
-			case INCOMPATIBLE_API_VERSION:
-				LOG.warn(productAndVersion + " deploying failed!");
-				break;
-			default:
-				throw new RuntimeException("Invalid result!");
-			}
-		});
-		checkError(progress, shell, "Error deploying product");
 	}
 
 	public static int createBatAndTaskForWindowsTaskScheduler(String product, String version, String outputFolderName)

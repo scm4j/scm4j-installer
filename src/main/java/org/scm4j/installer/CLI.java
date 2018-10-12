@@ -111,7 +111,8 @@ public class CLI {
 			if (command.equalsIgnoreCase(COMMAND_DEPLOY)) {
 				Common.copyJreIfNotExists();
 				if (!cmdLine.hasOption("i")) {
-					Common.deployWithProgress(shell, deployerEngine, product, version);
+					Installer installer = new Installer();
+					installer.deployWithProgress(shell, deployerEngine, product, version);
 				} else {
 					DeploymentResult result = deployerEngine.deploy(product, version);
 					LOG.info("result of deploy " + product + ' ' + version + " is " + result.toString());

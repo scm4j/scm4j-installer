@@ -1,5 +1,6 @@
 package org.scm4j.installer;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -14,16 +15,20 @@ import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Progress extends Dialog {
 
 	private Runnable runnable;
-
 	protected Object result;
 	protected Shell shell;
 	private Text textLog;
+	private String shellName;
 	private ProgressBar progressBar;
 	private Button btnClose;
 
@@ -32,6 +37,7 @@ public class Progress extends Dialog {
 	 */
 	public Progress(Shell parent, String text, Runnable runnable) {
 		super(parent);
+		this.shellName = text;
 		setText(text);
 		this.runnable = runnable;
 	}
@@ -118,6 +124,10 @@ public class Progress extends Dialog {
 			PrintStream standardOut = System.out;
 			PrintStream standardErr = System.err;
 			OutputStream textLogOutputStream = new OutputStream() {
+				private String child = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + '-'
+						+ shellName;
+				private File parentFile = new File(Settings.getWorkingFolder(), "logs");
+				private File currentLogFile = new File(parentFile, child);
 				private StringBuilder stringBuilder = new StringBuilder();
 
 				@Override
@@ -125,6 +135,11 @@ public class Progress extends Dialog {
 					stringBuilder.append(String.valueOf((char) b));
 					if (b == '\n') {
 						String finalString = stringBuilder.toString();
+						try {
+							FileUtils.writeStringToFile(currentLogFile, finalString, "UTF-8", true);
+						} catch (IOException e) {
+							//
+						}
 						Display display = getParent().getDisplay();
 						if (finalString.matches("^\\d{2}-\\d{2}-\\d{2}.*?(\r)\n$"))
 							display.syncExec(() -> textLog.append(finalString));
@@ -155,10 +170,11 @@ public class Progress extends Dialog {
 					if (finalException != null) {
 						textLog.append("\n" + finalException.toString() + "\n");
 						progressBar.setState(SWT.ERROR);
+						btnClose.setEnabled(true);
+					} else {
+						shell.close();
 					}
-					btnClose.setEnabled(true);
 				});
-
 			} finally {
 				System.setOut(standardOut);
 				System.setErr(standardErr);
