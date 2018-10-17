@@ -191,6 +191,8 @@ public class Installer {
 			case ALREADY_INSTALLED:
 			case NEWER_VERSION_EXISTS:
 				message = productAndVersion + ' ' + result.toString();
+				LOG.info(message);
+				break;
 			case OK:
 				message = productAndVersion + " successfully installed!";
 				LOG.info(message);
