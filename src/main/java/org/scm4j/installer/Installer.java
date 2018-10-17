@@ -224,11 +224,12 @@ public class Installer {
 				throw new RuntimeException("Invalid result!");
 			}
 		});
-		Common.checkError(progress, shell, "Error deploying product");
-		if (result == OK || result == NEWER_VERSION_EXISTS || result == ALREADY_INSTALLED) {
-			Common.showInfo(shell, message);
-		} else {
-			Common.showWarn(shell, message);
+		if (!Common.checkError(progress, shell, "Error deploying product")) {
+			if (result == OK || result == NEWER_VERSION_EXISTS || result == ALREADY_INSTALLED) {
+				Common.showInfo(shell, message);
+			} else {
+				Common.showWarn(shell, message);
+			}
 		}
 	}
 
@@ -236,13 +237,14 @@ public class Installer {
 		Progress progress = new Progress(shlInstaller, "Uninstalling " + productName, () -> {
 			result = getDeployerEngine().deploy(productName, "");
 		});
-		Common.checkError(progress, shlInstaller, "Error uninstall product");
-		if (result != OK) {
-			Common.showWarn(shlInstaller, "Uninstall return status " + result);
-		} else {
-			Common.showInfo(shlInstaller, productName + " successfully uninstalled");
+		if (!Common.checkError(progress, shlInstaller, "Error uninstall product")) {
+			if (result != OK) {
+				Common.showWarn(shlInstaller, "Uninstall return status " + result);
+			} else {
+				Common.showInfo(shlInstaller, productName + " successfully uninstalled");
+			}
+			getProducts();
 		}
-		getProducts();
 	}
 
 	private void centerWindow(Rectangle parent, Shell shellToCenter) {

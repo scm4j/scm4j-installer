@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter;
 public class Progress extends Dialog {
 
 	private Runnable runnable;
-	protected Object result;
+	protected Throwable result;
 	protected Shell shell;
 	private Text textLog;
 	private String shellName;
@@ -152,23 +152,21 @@ public class Progress extends Dialog {
 				System.setOut(textLogPrintStream);
 				System.setErr(textLogPrintStream);
 
-				Throwable exception = null;
 				if (runnable != null) {
 					try {
 						runnable.run();
 					} catch (Throwable e) {
 						e.printStackTrace();
-						exception = e;
+						result = e;
 					}
 				}
-				Throwable finalException = exception;
 
 				// update progressBar
 				Display display = getParent().getDisplay();
 				display.syncExec(() -> {
 					progressBar.setSelection(100);
-					if (finalException != null) {
-						textLog.append("\n" + finalException.toString() + "\n");
+					if (result != null) {
+						textLog.append("\n" + result.toString() + "\n");
 						progressBar.setState(SWT.ERROR);
 						btnClose.setEnabled(true);
 					} else {

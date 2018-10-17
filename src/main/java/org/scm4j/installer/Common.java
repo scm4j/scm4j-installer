@@ -15,8 +15,6 @@ import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,9 +33,7 @@ public final class Common {
 		if (message == null)
 			message = "";
 		if (exception != null) {
-			StringWriter sw = new StringWriter();
-			exception.printStackTrace(new PrintWriter(sw));
-			message += (message.isEmpty() ? "" : "\r\n") + sw.toString();
+			message += ' ' + exception.toString();
 		}
 		messageBox.setMessage(message);
 		messageBox.open();
@@ -105,12 +101,15 @@ public final class Common {
 		System.exit(0);
 	}
 
-	public static void checkError(Progress progress, Shell shell, String message) {
+	public static boolean checkError(Progress progress, Shell shell, String message) {
 		Object result = progress.open();
 		if (result != null) {
-			if (result instanceof Throwable)
+			if (result instanceof Throwable) {
 				Common.showError(shell, message, (Throwable) result);
+				return true;
+			}
 		}
+		return false;
 	}
 
 	public static void centerWindow(Display display, Shell shlLoading) {
