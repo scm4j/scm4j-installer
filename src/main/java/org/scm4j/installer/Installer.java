@@ -355,7 +355,8 @@ public class Installer {
 	}
 
 	private void createInstallBtnShl(String productName) {
-		shlDeployment = new Shell(shlInstaller);
+		shlDeployment = new Shell(shlInstaller, SWT.CLOSE | SWT.APPLICATION_MODAL);
+
 		shlDeployment.setText("Installation");
 		shlDeployment.setSize(400, 200);
 		centerWindow(shlInstaller.getBounds(), shlDeployment);
