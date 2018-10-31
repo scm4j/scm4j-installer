@@ -25,12 +25,14 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.scm4j.deployer.api.DeploymentResult;
+import org.scm4j.deployer.api.ProductInfo;
 import org.scm4j.deployer.engine.DeployerEngine;
 import org.slf4j.Logger;
 
 import java.beans.Beans;
 import java.io.InputStream;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,11 +81,15 @@ public class Installer {
 	 * Open the window.
 	 */
 	public void open() {
-		display = new Display();
+		display = Display.getDefault();
 		shlInstaller = new Shell(display);
 		createContents();
 		if (!Beans.isDesignTime()) {
-			init();
+			try {
+				init();
+			} catch (Exception e) {
+				return;
+			}
 		}
 		shlInstaller.open();
 		shlInstaller.layout();
@@ -94,19 +100,21 @@ public class Installer {
 		}
 	}
 
-	private void init() {
+	private void init() throws Exception {
 		Wait wait = new Wait(shlInstaller);
-		wait.open("Loading...");
 		try {
-			List<String> productNames = getDeployerEngine().refreshProducts();
-			for (String product : productNames) {
-				getDeployerEngine().refreshProductVersions(product);
-			}
-			fillProductsAndVersions(productNames);
+			Map<String, ProductInfo> map = new HashMap<>();
+			wait.open("Loading...", () -> {
+				Map<String, ProductInfo> products = getDeployerEngine().refreshProducts();
+				for (String productName : products.keySet()) {
+					getDeployerEngine().refreshProductVersions(productName);
+				}
+				map.putAll(products);
+			});
+			fillProductsAndVersions(map);
 		} catch (Exception e) {
-			Common.showError(shlInstaller, e.toString(), e);
-		} finally {
-			wait.close();
+			Common.showError(shlInstaller, "Error getting products and/or versions: ", e);
+			throw e;
 		}
 	}
 
@@ -126,10 +134,14 @@ public class Installer {
 		}
 	}
 
-	private void fillProductsAndVersions(List<String> products) {
+	private void fillProductsAndVersions(Map<String, ProductInfo> products) {
 		tableProducts.removeAll();
 		Map<String, String> deployedProducts = getDeployerEngine().mapDeployedProducts();
-		for (String productName : products) {
+		List<String> productNames = products.entrySet().stream()
+				.filter(e -> !e.getValue().isHidden())
+				.map(Map.Entry::getKey)
+				.collect(Collectors.toList());
+		for (String productName : productNames) {
 			try {
 				List<String> versions = getDeployerEngine().listProductVersions(productName);
 				String deployedVersion = deployedProducts.get(productName);
@@ -249,12 +261,6 @@ public class Installer {
 		}
 	}
 
-	private void centerWindow(Rectangle parent, Shell shellToCenter) {
-		Rectangle shellSize = shellToCenter.getBounds();
-		shellToCenter.setLocation((parent.width - shellSize.width) / 2 + parent.x,
-				(parent.height - shellSize.height) / 2 + parent.y);
-	}
-
 	/**
 	 * Create contents of the window.
 	 */
@@ -277,7 +283,7 @@ public class Installer {
 		shlInstaller.setLayout(new FormLayout());
 
 		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
-		centerWindow(monitorBounds, shlInstaller);
+		Common.centerWindow(monitorBounds, shlInstaller);
 
 		sashForm = new SashForm(shlInstaller, SWT.VERTICAL);
 		fd_sashForm = new FormData();
@@ -359,7 +365,7 @@ public class Installer {
 
 		shlDeployment.setText("Installation");
 		shlDeployment.setSize(400, 200);
-		centerWindow(shlInstaller.getBounds(), shlDeployment);
+		Common.centerWindow(shlInstaller.getBounds(), shlDeployment);
 		shlDeployment.setLayout(new FormLayout());
 
 		Label lblInstalledVersion = new Label(shlDeployment, SWT.NONE);

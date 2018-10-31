@@ -2,14 +2,9 @@ package org.scm4j.installer;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
@@ -22,23 +17,21 @@ import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Progress extends Dialog {
+public class Progress {
 
-	private Runnable runnable;
+	private final Runnable runnable;
+	private final Shell parent;
 	protected Throwable result;
 	protected Shell shell;
-	private Text textLog;
-	private String shellName;
-	private ProgressBar progressBar;
-	private Button btnClose;
+	private final String shellName;
+	private Text log;
 
 	/**
 	 * Create the dialog.
 	 */
 	public Progress(Shell parent, String text, Runnable runnable) {
-		super(parent);
+		this.parent = parent;
 		this.shellName = text;
-		setText(text);
 		this.runnable = runnable;
 	}
 
@@ -48,14 +41,14 @@ public class Progress extends Dialog {
 	 * @return the result
 	 */
 	public Object open() {
-		Display display = getParent().getDisplay();
+		Display display = parent.getDisplay();
 
 		createContents(display);
 
 		shell.open();
 		shell.layout();
 
-		startWork();
+		new ProcessThread().start();
 
 		while (!shell.isDisposed()) {
 			if (!display.readAndDispatch()) {
@@ -69,89 +62,64 @@ public class Progress extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents(Display display) {
-		shell = new Shell(getParent(), SWT.RESIZE | SWT.TITLE | SWT.PRIMARY_MODAL);
-		shell.setText(getText());
-		shell.setSize(800, 400);
+		shell = new Shell(parent, SWT.TITLE | SWT.APPLICATION_MODAL);
+		shell.setText(shellName);
+		shell.setSize(600, 100);
 		shell.setLayout(new FormLayout());
+		Common.centerWindow(display.getPrimaryMonitor().getBounds(), shell);
 
-		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
-		Rectangle shellSize = shell.getBounds();
-		shell.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
-				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
-
-		progressBar = new ProgressBar(shell, SWT.NONE);
+		ProgressBar progressBar = new ProgressBar(shell, SWT.INDETERMINATE);
 		FormData fd_progressBar = new FormData();
-		fd_progressBar.top = new FormAttachment(0, 10);
+		fd_progressBar.top = new FormAttachment(0, 30);
 		fd_progressBar.left = new FormAttachment(0, 10);
 		fd_progressBar.right = new FormAttachment(100, -10);
 		progressBar.setLayoutData(fd_progressBar);
 
-		textLog = new Text(shell, SWT.BORDER | SWT.READ_ONLY | SWT.H_SCROLL | SWT.V_SCROLL | SWT.CANCEL | SWT.MULTI);
-		FormData fd_textLog = new FormData();
-		fd_textLog.right = new FormAttachment(progressBar, 0, SWT.RIGHT);
-		fd_textLog.top = new FormAttachment(progressBar, 6);
-		fd_textLog.left = new FormAttachment(0, 10);
-		textLog.setLayoutData(fd_textLog);
-
-		btnClose = new Button(shell, SWT.NONE);
-		btnClose.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				shell.close();
-			}
-		});
-		btnClose.setEnabled(false);
-		fd_textLog.bottom = new FormAttachment(btnClose, -6);
-		FormData fd_btnClose = new FormData();
-		fd_btnClose.width = 75;
-		fd_btnClose.bottom = new FormAttachment(100, -10);
-		fd_btnClose.right = new FormAttachment(100, -10);
-		btnClose.setLayoutData(fd_btnClose);
-		btnClose.setText("Close");
-
-	}
-
-	private void startWork() {
-
-		new ProcessThread().start();
-
+		log = new Text(shell, SWT.READ_ONLY);
+		FormData fd_log = new FormData();
+		fd_log.top = new FormAttachment(0, 10);
+		fd_log.left = new FormAttachment(0, 10);
+		fd_log.right = new FormAttachment(100, -10);
+		fd_log.bottom = new FormAttachment(progressBar, 10);
+		log.setLayoutData(fd_log);
 	}
 
 	class ProcessThread extends Thread {
 
 		public void run() {
-
 			PrintStream standardOut = System.out;
 			PrintStream standardErr = System.err;
 			OutputStream textLogOutputStream = new OutputStream() {
-				private String child = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + '-'
-						+ shellName;
-				private File parentFile = new File(Settings.getWorkingFolder(), "logs");
-				private File currentLogFile = new File(parentFile, child);
-				private StringBuilder stringBuilder = new StringBuilder();
+				private final String child =
+						LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm")) + '-'
+								+ shellName + ".txt";
+				private final File parentFile = new File(Settings.getWorkingFolder(), "logs");
+				private final File currentLogFile = new File(parentFile, child);
+				private final StringBuilder stringBuilder = new StringBuilder();
 
 				@Override
 				public synchronized void write(int b) {
 					stringBuilder.append(String.valueOf((char) b));
 					if (b == '\n') {
 						String finalString = stringBuilder.toString();
+						Display display = shell.getDisplay();
+						if (finalString.matches("^\\d{2}-\\d{2}-\\d{2}.*?(\r)\n$"))
+							display.asyncExec(() -> log.setText(finalString.substring(15)));
+						stringBuilder.setLength(0);
 						try {
 							FileUtils.writeStringToFile(currentLogFile, finalString, "UTF-8", true);
 						} catch (IOException e) {
 							//
 						}
-						Display display = getParent().getDisplay();
-						if (finalString.matches("^\\d{2}-\\d{2}-\\d{2}.*?(\r)\n$"))
-							display.syncExec(() -> textLog.append(finalString));
-						stringBuilder.setLength(0);
 					}
 				}
 			};
+
 			PrintStream textLogPrintStream = new PrintStream(textLogOutputStream);
+
 			try {
 				System.setOut(textLogPrintStream);
 				System.setErr(textLogPrintStream);
-
 				if (runnable != null) {
 					try {
 						runnable.run();
@@ -162,17 +130,8 @@ public class Progress extends Dialog {
 				}
 
 				// update progressBar
-				Display display = getParent().getDisplay();
-				display.syncExec(() -> {
-					progressBar.setSelection(100);
-					if (result != null) {
-						textLog.append("\n" + result.toString() + "\n");
-						progressBar.setState(SWT.ERROR);
-						btnClose.setEnabled(true);
-					} else {
-						shell.close();
-					}
-				});
+				Display display = shell.getDisplay();
+				display.syncExec(() -> shell.close());
 			} finally {
 				System.setOut(standardOut);
 				System.setErr(standardErr);

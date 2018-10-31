@@ -101,6 +101,12 @@ public final class Common {
 		System.exit(0);
 	}
 
+	public static void centerWindow(Rectangle parent, Shell shellToCenter) {
+		Rectangle shellSize = shellToCenter.getBounds();
+		shellToCenter.setLocation((parent.width - shellSize.width) / 2 + parent.x,
+				(parent.height - shellSize.height) / 2 + parent.y);
+	}
+
 	public static boolean checkError(Progress progress, Shell shell, String message) {
 		Object result = progress.open();
 		if (result != null) {
@@ -110,13 +116,6 @@ public final class Common {
 			}
 		}
 		return false;
-	}
-
-	public static void centerWindow(Display display, Shell shlLoading) {
-		Rectangle monitorBounds = display.getPrimaryMonitor().getBounds();
-		Rectangle shellSize = shlLoading.getBounds();
-		shlLoading.setLocation((monitorBounds.width - shellSize.width) / 2 + monitorBounds.x,
-				(monitorBounds.height - shellSize.height) / 2 + monitorBounds.y);
 	}
 
 	public static void copyJreIfNotExists() {

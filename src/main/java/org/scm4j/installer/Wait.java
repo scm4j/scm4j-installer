@@ -1,52 +1,62 @@
 package org.scm4j.installer;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 
-public class Wait extends Dialog {
+public class Wait {
 
-	protected Shell shell;
+	private final Shell parent;
+	private Shell shell;
+	private Exception exception;
 
-	/**
-	 * Create the dialog.
-	 * @param parent
-	 */
 	public Wait(Shell parent) {
-		super(parent);
-		if (parent != null)
-			setText(parent.getText());
+		this.parent = parent;
 	}
 
-	public void open(String message) {
-		Display display = getParent().getDisplay();
+	public void open(String message, Runnable run) throws Exception {
+		Display display = parent.getDisplay();
 		createContents(message);
-		Common.centerWindow(display, shell);
+		Common.centerWindow(display.getPrimaryMonitor().getBounds(), shell);
 		shell.open();
 		shell.layout();
-	}
 
-	public void close() {
-		shell.close();
+		new Thread(() -> {
+			try {
+				run.run();
+			} catch (Exception e) {
+				exception = e;
+			}
+			display.syncExec(() -> shell.dispose());
+		}).start();
+
+		while (!shell.isDisposed()) {
+			if (!display.readAndDispatch()) {
+				display.sleep();
+			}
+		}
+
+		if (exception != null)
+			throw exception;
 	}
 
 	/**
 	 * Create contents of the dialog.
 	 */
 	private void createContents(String message) {
-		shell = new Shell(getParent(), SWT.BORDER);
+		shell = new Shell(parent, SWT.BORDER);
 		shell.setSize(450, 70);
-		shell.setText(getText());
+		shell.setText(message);
 		
 		Label lblTitle = new Label(shell, SWT.NONE);
 		lblTitle.setBounds(10, 12, 424, 22);
 		lblTitle.setText(message);
-		Common.resizeFonts(getParent().getDisplay(), lblTitle, 12);
+		Common.resizeFonts(Display.getDefault(), lblTitle, 12);
 
 		ProgressBar progressBar = new ProgressBar(shell, SWT.INDETERMINATE);
 		progressBar.setBounds(10, 35, 424, 20);
+		progressBar.setMaximum(1);
 	}
 }
