@@ -111,7 +111,7 @@ public class Installer {
 				}
 				map.putAll(products);
 			});
-			fillProductsAndVersions(map);
+			fillProductsAndVersions(map, false);
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting products and/or versions: ", e);
 			throw e;
@@ -128,17 +128,23 @@ public class Installer {
 
 	private void getProducts() {
 		try {
-			fillProductsAndVersions(getDeployerEngine().listProducts());
+			fillProductsAndVersions(getDeployerEngine().listProducts(), false);
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting product list", e);
 		}
 	}
 
-	private void fillProductsAndVersions(Map<String, ProductInfo> products) {
+	private void fillProductsAndVersions(Map<String, ProductInfo> products, boolean showHidden) {
 		tableProducts.removeAll();
 		Map<String, String> deployedProducts = getDeployerEngine().mapDeployedProducts();
 		List<String> productNames = products.entrySet().stream()
-				.filter(e -> !e.getValue().isHidden())
+				.filter(e -> {
+							if (showHidden)
+								return true;
+							else
+								return !e.getValue().isHidden();
+						}
+				)
 				.map(Map.Entry::getKey)
 				.collect(Collectors.toList());
 		for (String productName : productNames) {
@@ -444,20 +450,28 @@ public class Installer {
 		btnInstallFromCombo.setText("Install");
 	}
 
+	/**
+	 * If you press CTRL+SHIFT+ALT and click "Install" you show hidden products
+	 */
 	private void createBtnInstall() {
 		btnInstall = new Button(compositeButtons, SWT.NONE);
 		Common.resizeFonts(display, btnInstall, 12);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if (tableProducts.getSelectionIndex() == -1)
-					return;
-				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
+				if ((e.stateMask & SWT.CONTROL) != 0 && (e.stateMask & SWT.SHIFT) != 0
+						&& (e.stateMask & SWT.ALT) != 0) {
+					fillProductsAndVersions(getDeployerEngine().listProducts(), true);
+				} else {
+					if (tableProducts.getSelectionIndex() == -1)
+						return;
+					String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 
-				createInstallBtnShl(productName);
-				createBtnInstallFromCombo(productName);
+					createInstallBtnShl(productName);
+					createBtnInstallFromCombo(productName);
 
-				shlDeployment.open();
+					shlDeployment.open();
+				}
 			}
 		});
 		FormData fd_btnInstall = new FormData();
