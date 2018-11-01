@@ -451,7 +451,7 @@ public class Installer {
 	}
 
 	/**
-	 * If you press CTRL+SHIFT+ALT and click "Install" you show hidden products
+	 * Shows hidden products if CTRL+SHIFT+ALT pressed and "Install" clicked
 	 */
 	private void createBtnInstall() {
 		btnInstall = new Button(compositeButtons, SWT.NONE);
