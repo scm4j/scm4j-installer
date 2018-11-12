@@ -168,6 +168,11 @@ public class Installer {
 	}
 
 	private void refreshButtons() {
+		if (tableProducts.getSelectionIndex() == -1) {
+			btnInstall.setEnabled(true);
+			btnUninstall.setEnabled(true);
+			return;
+		}
 		String rawVersion = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
 		installedVersion = rawVersion.isEmpty() ? "Not installed" : rawVersion;
 		btnInstall.setEnabled(true);
@@ -326,12 +331,14 @@ public class Installer {
 	}
 
 	private void createTblProducts() {
-		tableProducts = new Table(sashForm, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
+		tableProducts = new Table(sashForm, SWT.SINGLE | SWT.BORDER | SWT.FULL_SELECTION);
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if (tableProducts.getSelectionIndex() == -1)
-					return;
+				if ((e.stateMask & SWT.CONTROL) != 0 && (e.stateMask & SWT.SHIFT) != 0
+						&& (e.stateMask & SWT.ALT) != 0) {
+					fillProductsAndVersions(getDeployerEngine().listProducts(), true);
+				}
 				refreshButtons();
 			}
 		});
@@ -459,19 +466,13 @@ public class Installer {
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if ((e.stateMask & SWT.CONTROL) != 0 && (e.stateMask & SWT.SHIFT) != 0
-						&& (e.stateMask & SWT.ALT) != 0) {
-					fillProductsAndVersions(getDeployerEngine().listProducts(), true);
-				} else {
-					if (tableProducts.getSelectionIndex() == -1)
-						return;
-					String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
+				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 
-					createInstallBtnShl(productName);
-					createBtnInstallFromCombo(productName);
+				createInstallBtnShl(productName);
+				createBtnInstallFromCombo(productName);
 
-					shlDeployment.open();
-				}
+				shlDeployment.open();
+//				}
 			}
 		});
 		FormData fd_btnInstall = new FormData();
@@ -488,8 +489,6 @@ public class Installer {
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if (tableProducts.getSelectionIndex() == -1)
-					return;
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				createMessageBox(Action.UNDEPLOY, productName, null);
 			}
@@ -507,8 +506,8 @@ public class Installer {
 		int style = SWT.YES | SWT.NO | SWT.ICON_QUESTION;
 		MessageBox mb = new MessageBox(messageShell, style);
 		mb.setText("Confirmation");
-		String message = actionName == Action.DEPLOY ? "deploy " + productName + "-" + version :
-				" undeploy " + productName;
+		String message = actionName == Action.DEPLOY ? "install " + productName + "-" + version :
+				" uninstall " + productName;
 		mb.setMessage("Do you really want to " + message);
 		int val = mb.open();
 		switch (val) {
