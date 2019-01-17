@@ -17,11 +17,11 @@ import java.io.PrintStream;
 
 public class CLI {
 
+	public static final String SILENT_MODE_PROPERTY_NAME = "installer.silent";
+
 	private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(CLI.class);
 	private static final String COMMAND_DOWNLOAD = "download";
 	private static final String COMMAND_DEPLOY = "deploy";
-
-	private static final String SILENT_MODE_PROPERTY_NAME = "installer.silent";
 	private static final String AFTER_REBOOT_PROPERTY_NAME = "installer.restarted";
 
 	public static void main(String[] args) {
@@ -90,9 +90,8 @@ public class CLI {
 			writeExitCodeToFileOrJustExit(1, exitcodeFile);
 		}
 
-		if (cmdLine.hasOption("i")) {
+		if (cmdLine.hasOption("i"))
 			System.setProperty(SILENT_MODE_PROPERTY_NAME, Boolean.toString(true));
-		}
 
 		if (cmdLine.hasOption("a"))
 			System.setProperty(AFTER_REBOOT_PROPERTY_NAME, Boolean.toString(true));
