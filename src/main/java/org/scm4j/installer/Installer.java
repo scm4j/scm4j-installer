@@ -335,8 +335,7 @@ public class Installer {
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if ((e.stateMask & SWT.CONTROL) != 0 && (e.stateMask & SWT.SHIFT) != 0
-						&& (e.stateMask & SWT.ALT) != 0) {
+				if ((e.stateMask & SWT.SHIFT) != 0) {
 					fillProductsAndVersions(getDeployerEngine().listProducts(), true);
 				}
 				refreshButtons();
