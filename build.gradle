@@ -39,7 +39,7 @@ dependencies {
 	testCompile 'junit:junit:4.12'
 }
 
-configurations.all {
+configurations.compile {
 	resolutionStrategy {
 		cacheDynamicVersionsFor 0, 'seconds'
 		cacheChangingModulesFor 0, 'seconds'

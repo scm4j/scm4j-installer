@@ -35,7 +35,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.scm4j.deployer.api.DeploymentResult.ALREADY_INSTALLED;
@@ -63,6 +62,7 @@ public class Installer {
 	private String installedVersion;
 	private String message;
 	private DeploymentResult result;
+	private Map<String, List<String>> versionsCache;
 
 	public static void main(String[] args) {
 		if (args.length > 0) {
@@ -111,7 +111,7 @@ public class Installer {
 				}
 				map.putAll(products);
 			});
-			fillProductsAndVersions(map, false);
+			fillProductsAndVersions(map, false, false);
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting products and/or versions: ", e);
 			throw e;
@@ -128,18 +128,19 @@ public class Installer {
 
 	private void getProducts() {
 		try {
-			fillProductsAndVersions(getDeployerEngine().listProducts(), false);
+			fillProductsAndVersions(getDeployerEngine().listProducts(), false, false);
 		} catch (Exception e) {
 			Common.showError(shlInstaller, "Error getting product list", e);
 		}
 	}
 
-	private void fillProductsAndVersions(Map<String, ProductInfo> products, boolean showHidden) {
+	private void fillProductsAndVersions(Map<String, ProductInfo> products, boolean showHiddenProducts,
+	                                     boolean showHiddenVersions) {
 		tableProducts.removeAll();
 		Map<String, String> deployedProducts = getDeployerEngine().mapDeployedProducts();
 		List<String> productNames = products.entrySet().stream()
 				.filter(e -> {
-							if (showHidden)
+					if (showHiddenProducts)
 								return true;
 							else
 								return !e.getValue().isHidden();
@@ -147,20 +148,36 @@ public class Installer {
 				)
 				.map(Map.Entry::getKey)
 				.collect(Collectors.toList());
+		versionsCache = new HashMap<>();
 		for (String productName : productNames) {
 			try {
-				List<String> versions = getDeployerEngine().listProductVersions(productName);
+				Map<String, Boolean> versions = getDeployerEngine().listProductVersions(productName);
 				String deployedVersion = deployedProducts.get(productName);
 				if (deployedVersion == null || deployedVersion.isEmpty()) {
 					deployedVersion = "Not installed";
 				}
 				TableItem item = new TableItem(tableProducts, SWT.NONE);
-				Optional<String> latestVersion = versions.stream()
-						.filter(s -> !s.contains("-SNAPSHOT"))
-						.max(Comparator.naturalOrder());
+				List<String> filteredVersions = versions.entrySet().stream()
+						.filter(s -> !s.getKey().contains("-SNAPSHOT"))
+						.filter(e -> {
+							if (showHiddenVersions) {
+								return true;
+							} else {
+								return e.getValue();
+							}
+						})
+						.map(Map.Entry::getKey)
+						.sorted(Comparator.reverseOrder())
+						.collect(Collectors.toList());
+				versionsCache.put(productName, filteredVersions);
+				String latestVersion;
+				if (!filteredVersions.isEmpty())
+					latestVersion = filteredVersions.get(0);
+				else
+					latestVersion = "";
 				item.setText(0, productName);
 				item.setText(1, deployedVersion);
-				item.setText(2, latestVersion.orElse(""));
+				item.setText(2, latestVersion);
 			} catch (Exception e) {
 				Common.showError(shlInstaller, "Error getting product versions", e);
 			}
@@ -169,8 +186,8 @@ public class Installer {
 
 	private void refreshButtons() {
 		if (tableProducts.getSelectionIndex() == -1) {
-			btnInstall.setEnabled(true);
-			btnUninstall.setEnabled(true);
+			btnInstall.setEnabled(false);
+			btnUninstall.setEnabled(false);
 			return;
 		}
 		String rawVersion = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(1);
@@ -335,8 +352,11 @@ public class Installer {
 		tableProducts.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				if ((e.stateMask & SWT.SHIFT) != 0) {
-					fillProductsAndVersions(getDeployerEngine().listProducts(), true);
+				if ((e.stateMask & SWT.SHIFT) != 0 && (e.stateMask & SWT.CTRL) == 0 && (e.stateMask & SWT.ALT) == 0) {
+					fillProductsAndVersions(getDeployerEngine().listProducts(), true, false);
+				}
+				if ((e.stateMask & SWT.SHIFT) != 0 && (e.stateMask & SWT.CTRL) != 0 && (e.stateMask & SWT.ALT) != 0) {
+					fillProductsAndVersions(getDeployerEngine().listProducts(), true, true);
 				}
 				refreshButtons();
 			}
@@ -416,12 +436,9 @@ public class Installer {
 		fd_cmbVersions.left = new FormAttachment(lblInstalledVersion, 13);
 		fd_cmbVersions.right = new FormAttachment(100, -10);
 		cmbVersions.setLayoutData(fd_cmbVersions);
-		List<String> versions = getDeployerEngine().listProductVersions(productName).stream()
-				.filter(s -> !s.contains("-SNAPSHOT"))
-				.sorted(Comparator.reverseOrder())
-				.collect(Collectors.toList());
-		String[] items = versions.toArray(new String[]{});
-		version = versions.get(0);
+		List<String> versions = versionsCache.get(productName);
+		String[] items = versions.toArray(new String[0]);
+		version = items[0];
 		cmbVersions.setItems(items);
 		cmbVersions.select(0);
 		cmbVersions.addSelectionListener(new SelectionAdapter() {
@@ -457,11 +474,12 @@ public class Installer {
 	}
 
 	/**
-	 * Shows hidden products if CTRL+SHIFT+ALT pressed and "Install" clicked
+	 * Shows hidden versions if CTRL+SHIFT+ALT pressed and "Install" clicked
 	 */
 	private void createBtnInstall() {
 		btnInstall = new Button(compositeButtons, SWT.NONE);
 		Common.resizeFonts(display, btnInstall, 12);
+		btnInstall.setEnabled(false);
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -471,7 +489,6 @@ public class Installer {
 				createBtnInstallFromCombo(productName);
 
 				shlDeployment.open();
-//				}
 			}
 		});
 		FormData fd_btnInstall = new FormData();
@@ -485,6 +502,7 @@ public class Installer {
 	private void createBtnUninstall() {
 		btnUninstall = new Button(compositeButtons, SWT.NONE);
 		Common.resizeFonts(display, btnUninstall, 12);
+		btnUninstall.setEnabled(false);
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
