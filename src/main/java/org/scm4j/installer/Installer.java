@@ -483,6 +483,9 @@ public class Installer {
 		btnInstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (tableProducts.getSelectionIndex() == -1) {
+					return;
+				}
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 
 				createInstallBtnShl(productName);
@@ -506,6 +509,9 @@ public class Installer {
 		btnUninstall.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				if (tableProducts.getSelectionIndex() == -1) {
+					return;
+				}
 				String productName = tableProducts.getItem(tableProducts.getSelectionIndex()).getText(0);
 				createMessageBox(Action.UNDEPLOY, productName, null);
 			}
