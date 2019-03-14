@@ -98,7 +98,7 @@ public class CLI {
 
 		try {
 			DeployerEngine deployerEngine = new DeployerEngine(Settings.getPortableFolder(),
-					Settings.getWorkingFolder(), Settings.PRODUCT_LIST_URL);
+					Settings.getWorkingFolder(), Settings.PRODUCT_LIST_URL_1, Settings.PRODUCT_LIST_URL_2);
 			if (command.equalsIgnoreCase(COMMAND_DOWNLOAD)) {
 				if (!cmdLine.hasOption("i")) {
 					Common.downloadWithProgress(shell, deployerEngine, product, version);

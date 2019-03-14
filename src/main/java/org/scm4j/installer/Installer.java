@@ -121,7 +121,7 @@ public class Installer {
 	protected DeployerEngine getDeployerEngine() {
 		if (deployerEngine == null) {
 			deployerEngine = new DeployerEngine(Settings.getPortableFolder(), Settings.getWorkingFolder(),
-					Settings.PRODUCT_LIST_URL);
+					Settings.PRODUCT_LIST_URL_1, Settings.PRODUCT_LIST_URL_2);
 		}
 		return deployerEngine;
 	}
