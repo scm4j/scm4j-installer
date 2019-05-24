@@ -7,8 +7,8 @@ import java.net.URISyntaxException;
 public final class Settings {
 
 	public static final String WORKING_FOLDER = "C:/ProgramData/unTill/installer";
-	public static final String PRODUCT_LIST_URL_1 = "https://su.untill.com/artifactory1/virt";
-	public static final String PRODUCT_LIST_URL_2 = "https://su.untill.com/artifactory2/virt";
+	public static final String PRODUCT_LIST_URL_1 = "https://su.untill.com/artifactory1/untill";
+	public static final String PRODUCT_LIST_URL_2 = "https://su.untill.com/artifactory2/untill";
 	public static final String DEFAULT_INSTALLER_URL = "C:/tools/untill/installer";
 	private static String productName = "scm4j-installer";
 	private static InputStream iconFileStream;
