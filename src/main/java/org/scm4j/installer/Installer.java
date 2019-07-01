@@ -227,10 +227,13 @@ public class Installer {
 		String productAndVersion = product + "-" + version;
 		Progress progress = new Progress(shell, "Installing " + productAndVersion, () -> {
 			result = engine.deploy(product, version);
+			String errorMsg = result.getErrorMsg();
+			if (errorMsg == null)
+				errorMsg = "";
 			switch (result) {
 			case ALREADY_INSTALLED:
 			case NEWER_VERSION_EXISTS:
-				message = productAndVersion + ' ' + result.toString();
+				message = productAndVersion + ' ' + result.toString() + "\n" + errorMsg;
 				LOG.info(message);
 				break;
 			case OK:
@@ -238,7 +241,7 @@ public class Installer {
 				LOG.info(message);
 				break;
 			case NEED_REBOOT:
-				message = productAndVersion + " need reboot";
+				message = productAndVersion + " need reboot!" + "\n" + errorMsg;
 				LOG.warn(message);
 				break;
 			case REBOOT_CONTINUE:
@@ -259,7 +262,7 @@ public class Installer {
 				break;
 			case FAILED:
 			case INCOMPATIBLE_API_VERSION:
-				message = productAndVersion + " deploying failed!";
+				message = productAndVersion + " deploying failed!" + "\n" + errorMsg;
 				LOG.warn(message);
 				break;
 			default:
@@ -281,7 +284,10 @@ public class Installer {
 		});
 		if (!Common.checkError(progress, shlInstaller, "Error uninstall product")) {
 			if (result != OK) {
-				Common.showWarn(shlInstaller, "Uninstall return status " + result);
+				String errorMsg = result.getErrorMsg();
+				if (errorMsg == null)
+					errorMsg = "";
+				Common.showWarn(shlInstaller, "Uninstall return status " + result + "\n" + errorMsg);
 			} else {
 				Common.showInfo(shlInstaller, productName + " successfully uninstalled");
 			}

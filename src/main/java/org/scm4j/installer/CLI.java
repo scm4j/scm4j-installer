@@ -116,13 +116,19 @@ public class CLI {
 					DeploymentResult result = deployerEngine.deploy(product, version);
 					LOG.info("result of deploy " + product + ' ' + version + " is " + result.toString());
 					int exitcode;
+					String resultMsg = result.getErrorMsg();
+					if (resultMsg == null) {
+						resultMsg = "";
+					}
 					switch (result) {
 					case OK:
 					case ALREADY_INSTALLED:
 					case NEWER_VERSION_EXISTS:
+						LOG.warn(resultMsg);
 						writeExitCodeToFileOrJustExit(0, exitcodeFile);
 						break;
 					case REBOOT_CONTINUE:
+						LOG.warn(resultMsg);
 						exitcode = Common.createBatAndTaskForWindowsTaskScheduler(product, version, outputFolderName);
 						if (exitcode != 0)
 							writeExitCodeToFileOrJustExit(1, exitcodeFile);
@@ -130,6 +136,7 @@ public class CLI {
 							Common.restartPc();
 						break;
 					case NEED_REBOOT:
+						LOG.warn(resultMsg);
 						exitcode = Common.createBatAndTaskForWindowsTaskScheduler("@echo 0 > \""
 								+ exitcodeFile.getPath() + '\"');
 						if (exitcode != 0)
@@ -139,6 +146,7 @@ public class CLI {
 						break;
 					case FAILED:
 					case INCOMPATIBLE_API_VERSION:
+						LOG.warn(resultMsg);
 						writeExitCodeToFileOrJustExit(2, exitcodeFile);
 						break;
 					default:
